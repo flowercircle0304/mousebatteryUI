@@ -143,9 +143,45 @@ internal sealed class SettingsForm : Form
         importButton.FlatAppearance.BorderColor = Theme.Border;
         importButton.Click += (_, _) => ImportSettings();
         Controls.Add(importButton);
+
+        var diagButton = new Button
+        {
+            Text = Strings.SettingsSaveDiagnostics,
+            Location = new Point(332, y),
+            Width = 172,
+            Height = 24,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.AccentCyan,
+        };
+        diagButton.FlatAppearance.BorderColor = Theme.Border;
+        diagButton.Click += (_, _) => SaveDiagnostics();
+        Controls.Add(diagButton);
         y += 30;
 
         return y;
+    }
+
+    private void SaveDiagnostics()
+    {
+        using var dlg = new SaveFileDialog
+        {
+            Filter = Strings.DiagnosticsFileFilter,
+            FileName = $"mouse-battery-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+            Title = Strings.DiagnosticsDialogTitle,
+        };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            var report = HidDiagnostics.BuildReport(_settings);
+            File.WriteAllText(dlg.FileName, report);
+            MessageBox.Show(this, Strings.DiagnosticsSaved, Strings.SettingsTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, Strings.DiagnosticsFailed(ex.Message), Strings.SettingsTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private (CheckBox Check, NumericUpDown Threshold) BuildThresholdRow(

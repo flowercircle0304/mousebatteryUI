@@ -57,6 +57,13 @@ public static class Strings
     public static string SettingsFullChargeSuffix => P("% 以上）", "% or above)");
     public static string SettingsExport => P("設定をエクスポート...", "Export settings...");
     public static string SettingsImport => P("設定をインポート...", "Import settings...");
+    public static string SettingsSaveDiagnostics => P("診断情報を保存...", "Save diagnostics...");
+    public static string DiagnosticsFileFilter => P("テキストファイル (*.txt)|*.txt", "Text file (*.txt)|*.txt");
+    public static string DiagnosticsDialogTitle => P("診断情報を保存", "Save diagnostics");
+    public static string DiagnosticsSaved => P(
+        "保存しました。動かない機種を報告する際に、このファイルを添付してもらえると原因を特定しやすくなります。",
+        "Saved. When reporting a device that isn't working, attaching this file makes it much easier to diagnose.");
+    public static string DiagnosticsFailed(string message) => P($"保存に失敗しました:\n{message}", $"Failed to save:\n{message}");
     public static string SettingsLanguage => P("言語", "Language");
 
     public static string SettingsSectionDevices => P("対応マウス", "Supported mice");

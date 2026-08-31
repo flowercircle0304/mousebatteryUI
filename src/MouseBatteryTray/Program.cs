@@ -21,6 +21,11 @@ static class Program
             TestDiscovery();
             return;
         }
+        if (args.Length > 0 && args[0] == "--diagnostics")
+        {
+            Console.WriteLine(HidDiagnostics.BuildReport(AppSettings.Load()));
+            return;
+        }
 #endif
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
