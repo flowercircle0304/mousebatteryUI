@@ -89,11 +89,12 @@ public static class HidDiagnostics
         return sb.ToString();
     }
 
-    /// <summary>Attempts to actually open (and immediately close) one collection, returning "OK" or
-    /// the real exception message (e.g. "Access is denied" when another app/service holds it
-    /// exclusively) rather than just a bool, since that message is exactly what tells us whether a
-    /// "can't open" report is a protocol mismatch or a competing-reader problem like the one seen
-    /// with ATK HUB during this project's own development.</summary>
+    /// <summary>Attempts to actually open (and immediately close) one collection, first the normal
+    /// HidSharp way and then via the reduced-access fallback in <see cref="RawHidFeatureIo"/> (the
+    /// same one <see cref="RazerProvider"/> relies on for collections Windows protects from
+    /// read/write access, e.g. a mouse's primary usage). Reporting both separately is what makes a
+    /// "can't open" report distinguishable between a protocol mismatch, a competing-reader problem
+    /// like the one seen with ATK HUB, and this reduced-access case.</summary>
     private static string TryOpenRaw(HidDevice device)
     {
         try
@@ -103,6 +104,12 @@ public static class HidDiagnostics
         }
         catch (Exception ex)
         {
+            var handle = RawHidFeatureIo.Open(device.DevicePath);
+            if (handle is not null)
+            {
+                handle.Dispose();
+                return $"{ex.GetType().Name}: {ex.Message} (ただしFeature専用の縮小アクセスでは開けます / but opens via reduced-access Feature-only fallback)";
+            }
             return $"{ex.GetType().Name}: {ex.Message}";
         }
     }

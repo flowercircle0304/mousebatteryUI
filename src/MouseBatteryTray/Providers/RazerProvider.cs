@@ -1,4 +1,5 @@
 using HidSharp;
+using Microsoft.Win32.SafeHandles;
 
 namespace MouseBatteryTray.Providers;
 
@@ -48,9 +49,16 @@ public sealed class RazerProvider : IMouseBatteryProvider
         // payload) feature report length.
         var target = collections.FirstOrDefault(d => d.GetMaxFeatureReportLength() == 91);
         if (target is null) return null;
-        if (!target.TryOpen(out var stream)) return null;
 
-        return new Session(DisplayName, stream, _transactionId);
+        // This collection is also the mouse's primary "Mouse" usage, which Windows protects from
+        // full read/write opens (anti-keylogger). HidSharp's Open()/TryOpen() only tries the full
+        // access request and gives up when Windows refuses it. Feature reports don't need that
+        // access though, so we go around HidSharp here and open the device path directly, with the
+        // same reduced-access fallback hidapi's Windows backend uses. See RawHidFeatureIo.
+        var handle = RawHidFeatureIo.Open(target.DevicePath);
+        if (handle is null) return null;
+
+        return new Session(DisplayName, handle, _transactionId);
     }
 
     private sealed class Session : IBatteryDeviceSession
@@ -60,16 +68,16 @@ public sealed class RazerProvider : IMouseBatteryProvider
         private const byte StatusSuccessful = 0x02;
         private const byte StatusNoResponse = 0x04;
 
-        private readonly HidStream _stream;
+        private readonly SafeFileHandle _handle;
         private readonly byte _transactionId;
         private readonly object _lock = new();
 
         public string DeviceLabel { get; }
 
-        public Session(string label, HidStream stream, byte transactionId)
+        public Session(string label, SafeFileHandle handle, byte transactionId)
         {
             DeviceLabel = label;
-            _stream = stream;
+            _handle = handle;
             _transactionId = transactionId;
         }
 
@@ -116,24 +124,15 @@ public sealed class RazerProvider : IMouseBatteryProvider
 
             for (int attempt = 0; attempt < 5; attempt++)
             {
-                try
-                {
-                    _stream.SetFeature(request);
-                }
-                catch
+                if (!RawHidFeatureIo.SetFeature(_handle, request))
                 {
                     return null;
                 }
                 Thread.Sleep(60);
 
-                byte[] response;
-                try
-                {
-                    response = new byte[91];
-                    response[0] = 0x00;
-                    _stream.GetFeature(response);
-                }
-                catch
+                var response = new byte[91];
+                response[0] = 0x00;
+                if (!RawHidFeatureIo.GetFeature(_handle, response))
                 {
                     return null;
                 }
@@ -172,6 +171,6 @@ public sealed class RazerProvider : IMouseBatteryProvider
             return crc;
         }
 
-        public void Dispose() => _stream.Dispose();
+        public void Dispose() => _handle.Dispose();
     }
 }
