@@ -108,7 +108,7 @@ internal sealed class BatteryPopupForm : Form
             using var brush = new SolidBrush(Theme.TextMuted);
             var rect = new RectangleF(Pad, y, Width - Pad * 2, CardHeight);
             using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString("対応デバイスが見つかりません", font, brush, rect, sf);
+            g.DrawString(Strings.PopupNoDevices, font, brush, rect, sf);
             y += CardHeight + CardGap;
         }
         else
@@ -139,7 +139,7 @@ internal sealed class BatteryPopupForm : Form
     {
         using var titleFont = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold);
         using var titleBrush = new SolidBrush(Theme.AccentCyan);
-        DrawSpacedText(g, "MOUSE  BATTERY", titleFont, titleBrush, Pad, 14, 1.6f);
+        DrawSpacedText(g, Strings.PopupTitle, titleFont, titleBrush, Pad, 14, 1.6f);
 
         _closeButtonRect = new RectangleF(Width - Pad - 16, 14, 16, 16);
         DrawCloseGlyph(g, _closeButtonRect, Theme.TextMuted);
@@ -229,7 +229,14 @@ internal sealed class BatteryPopupForm : Form
             using var chargeFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
             using var chargeBrush = new SolidBrush(Theme.AccentViolet);
             using var sf = new StringFormat { Alignment = StringAlignment.Far };
-            g.DrawString("⚡充電中", chargeFont, chargeBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
+            g.DrawString(Strings.PopupCharging, chargeFont, chargeBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
+        }
+        else if (status.EstimatedTimeRemaining is { } eta)
+        {
+            using var etaFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
+            using var etaBrush = new SolidBrush(Theme.TextMuted);
+            using var sf = new StringFormat { Alignment = StringAlignment.Far };
+            g.DrawString(Strings.PopupEtaPrefix + FormatEta(eta), etaFont, etaBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
         }
 
         string pctText = status.Reading is null ? "--" : status.Reading.Percent.ToString();
@@ -262,8 +269,8 @@ internal sealed class BatteryPopupForm : Form
         }
 
         string? footNote = status.Reading is null
-            ? "応答待ち"
-            : HasCompanionApp(status.ProviderId) ? "クリックで起動 ▷" : null;
+            ? Strings.PopupWaiting
+            : HasCompanionApp(status.ProviderId) ? Strings.PopupClickToLaunch : null;
         if (footNote is not null)
         {
             using var footFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
@@ -272,6 +279,9 @@ internal sealed class BatteryPopupForm : Form
             g.DrawString(footNote, footFont, footBrush, new RectangleF(rect.X, gaugeRect.Bottom + 3, rect.Width - 14, 14), sf);
         }
     }
+
+    private static string FormatEta(TimeSpan eta) =>
+        eta.TotalHours >= 1 ? Strings.PopupEtaHours((int)eta.TotalHours) : Strings.PopupEtaMinutes(Math.Max(1, (int)eta.TotalMinutes));
 
     private bool HasCompanionApp(string providerId) =>
         _settings.Devices.TryGetValue(providerId, out var s) && !string.IsNullOrWhiteSpace(s.CompanionPath);
@@ -284,13 +294,13 @@ internal sealed class BatteryPopupForm : Form
         Gfx.DrawRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan, 1f);
         using (var b = new SolidBrush(Theme.AccentCyan))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-            g.DrawString("今すぐ更新", font, b, _refreshButtonRect, sf);
+            g.DrawString(Strings.PopupRefresh, font, b, _refreshButtonRect, sf);
 
         _exitButtonRect = new RectangleF(Width - Pad - 80, y + 8, 80, 24);
         Gfx.DrawRoundedRect(g, _exitButtonRect, 12, Theme.TextMuted, 1f);
         using (var b = new SolidBrush(Theme.TextMuted))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-            g.DrawString("終了", font, b, _exitButtonRect, sf);
+            g.DrawString(Strings.PopupExit, font, b, _exitButtonRect, sf);
     }
 
     protected override void OnMouseClick(MouseEventArgs e)

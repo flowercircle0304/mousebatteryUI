@@ -28,7 +28,7 @@ internal sealed class AddMouseWizardForm : Form
     {
         _settings = settings;
 
-        Text = "新しいマウスを追加";
+        Text = Strings.WizardTitle;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -41,7 +41,7 @@ internal sealed class AddMouseWizardForm : Form
 
         var title = new Label
         {
-            Text = "対象デバイス",
+            Text = Strings.WizardTargetDevice,
             ForeColor = Theme.AccentCyan,
             Font = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold),
             AutoSize = true,
@@ -61,7 +61,7 @@ internal sealed class AddMouseWizardForm : Form
 
         var rescanButton = new Button
         {
-            Text = "再スキャン",
+            Text = Strings.WizardRescan,
             Location = new Point(364, 41),
             Width = 90,
             Height = 24,
@@ -75,7 +75,7 @@ internal sealed class AddMouseWizardForm : Form
 
         var hint = new Label
         {
-            Text = "対応済みでないマウスの受信機だけが一覧に出ます。見当たらない場合は挿し直して「再スキャン」してください。",
+            Text = Strings.WizardDeviceHint,
             ForeColor = Theme.TextMuted,
             AutoSize = true,
             MaximumSize = new Size(490, 0),
@@ -85,7 +85,7 @@ internal sealed class AddMouseWizardForm : Form
 
         var pctLabel = new Label
         {
-            Text = "現在のバッテリー%（付属の公式ソフトや本体表示で確認）：",
+            Text = Strings.WizardPercentLabel,
             AutoSize = true,
             Location = new Point(16, 106),
             ForeColor = Theme.TextPrimary,
@@ -106,7 +106,7 @@ internal sealed class AddMouseWizardForm : Form
 
         _scanButton = new Button
         {
-            Text = "スキャン開始（受信待ち・安全）",
+            Text = Strings.WizardScanButton,
             Location = new Point(16, 138),
             Width = 220,
             Height = 30,
@@ -120,7 +120,7 @@ internal sealed class AddMouseWizardForm : Form
 
         _activeScanButton = new Button
         {
-            Text = "アクティブ探索も試す（診断コマンド送信）",
+            Text = Strings.WizardActiveScanButton,
             Location = new Point(244, 138),
             Width = 250,
             Height = 30,
@@ -158,7 +158,7 @@ internal sealed class AddMouseWizardForm : Form
         };
         Controls.Add(_resultLabel);
 
-        var nameLabel = new Label { Text = "表示名：", Location = new Point(16, 380), AutoSize = true, ForeColor = Theme.TextPrimary };
+        var nameLabel = new Label { Text = Strings.WizardNameLabel, Location = new Point(16, 380), AutoSize = true, ForeColor = Theme.TextPrimary };
         Controls.Add(nameLabel);
 
         _nameInput = new TextBox
@@ -174,7 +174,7 @@ internal sealed class AddMouseWizardForm : Form
 
         _saveButton = new Button
         {
-            Text = "この設定を保存",
+            Text = Strings.WizardSaveButton,
             Location = new Point(16, 412),
             Width = 140,
             Height = 30,
@@ -189,7 +189,7 @@ internal sealed class AddMouseWizardForm : Form
 
         var closeButton = new Button
         {
-            Text = "閉じる",
+            Text = Strings.WizardClose,
             DialogResult = DialogResult.Cancel,
             Location = new Point(ClientSize.Width - 88, 412),
             Width = 72,
@@ -224,7 +224,7 @@ internal sealed class AddMouseWizardForm : Form
     {
         if (_deviceCombo.SelectedIndex < 0)
         {
-            AppendLog("デバイスを選択してください。");
+            AppendLog(Strings.WizardSelectDevice);
             return;
         }
 
@@ -238,8 +238,8 @@ internal sealed class AddMouseWizardForm : Form
         _scanButton.Enabled = false;
         _activeScanButton.Enabled = false;
 
-        AppendLog($"[受信待ちスキャン] {device.DisplayName} / 目標値 {target}%");
-        AppendLog("マウスを軽く動かすかクリックすると受信間隔が早まることがあります。");
+        AppendLog(Strings.WizardPassiveScanHeader(device.DisplayName, target));
+        AppendLog(Strings.WizardMoveMouseHint);
 
         _scanCts = new CancellationTokenSource();
         var ct = _scanCts.Token;
@@ -256,14 +256,14 @@ internal sealed class AddMouseWizardForm : Form
                     _passiveMatch = match;
                     _activeMatch = null;
                     _resultLabel.ForeColor = Theme.LevelHigh;
-                    _resultLabel.Text = "✓ 見つかりました（受信待ち方式）";
+                    _resultLabel.Text = Strings.WizardFoundPassive;
                     _nameInput.Text = device.DisplayName;
                     _nameInput.Enabled = true;
                     _saveButton.Enabled = true;
                 }
                 else
                 {
-                    AppendLog("受信待ちスキャンでは見つかりませんでした。");
+                    AppendLog(Strings.WizardPassiveNotFound);
                     _activeScanButton.Enabled = true;
                 }
             });
@@ -278,16 +278,15 @@ internal sealed class AddMouseWizardForm : Form
 
         var confirm = MessageBox.Show(
             this,
-            "デバイスに1件だけ診断コマンド（バッテリー残量取得用、既知の安全なコマンド）を送信します。\n" +
-            "通常は問題ありませんが、対応していないデバイスの場合は無視されるか、想定外の反応をする可能性があります。続行しますか？",
-            "アクティブ探索の確認",
+            Strings.WizardActiveConfirmText,
+            Strings.WizardActiveConfirmTitle,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning);
         if (confirm != DialogResult.Yes) return;
 
         _activeScanButton.Enabled = false;
-        AppendLog($"[アクティブ探索] {device.DisplayName} / 目標値 {target}%");
-        AppendLog("マウスがスリープ状態だと応答しないことがあります。軽く動かしてから実行してください。");
+        AppendLog(Strings.WizardActiveScanHeader(device.DisplayName, target));
+        AppendLog(Strings.WizardActiveWakeHint);
 
         Task.Run(() =>
         {
@@ -300,7 +299,7 @@ internal sealed class AddMouseWizardForm : Form
                     _activeMatch = match;
                     _passiveMatch = null;
                     _resultLabel.ForeColor = Theme.LevelHigh;
-                    _resultLabel.Text = "✓ 見つかりました（COMPX方式）";
+                    _resultLabel.Text = Strings.WizardFoundActive;
                     _nameInput.Text = device.DisplayName;
                     _nameInput.Enabled = true;
                     _saveButton.Enabled = true;
@@ -308,7 +307,7 @@ internal sealed class AddMouseWizardForm : Form
                 else
                 {
                     _resultLabel.ForeColor = Theme.LevelLow;
-                    _resultLabel.Text = "✗ 自動では見つかりませんでした。手動解析が必要です。";
+                    _resultLabel.Text = Strings.WizardNotFoundActive;
                     _activeScanButton.Enabled = true;
                 }
             });

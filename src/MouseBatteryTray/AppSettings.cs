@@ -49,10 +49,18 @@ public sealed class AppSettings
     public bool LowBatteryNotificationsEnabled { get; set; } = true;
     public int LowBatteryThreshold { get; set; } = 20;
 
+    public bool FullChargeNotificationsEnabled { get; set; } = true;
+    public int FullChargeThreshold { get; set; } = 95;
+
     /// <summary>When true, the popup stays open (ignores click-away) at <see cref="PopupPinnedX"/>/<see cref="PopupPinnedY"/> instead of near the tray icon.</summary>
     public bool PopupPinned { get; set; } = false;
     public int? PopupPinnedX { get; set; }
     public int? PopupPinnedY { get; set; }
+
+    public bool AutoUpdateCheckEnabled { get; set; } = true;
+
+    /// <summary>"ja" or "en". Falls back to the OS UI language on first run.</summary>
+    public string Language { get; set; } = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ja" ? "ja" : "en";
 
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -104,5 +112,21 @@ public sealed class AppSettings
         Directory.CreateDirectory(dir);
         var json = JsonSerializer.Serialize(this, JsonOptions);
         File.WriteAllText(FilePath, json);
+    }
+
+    /// <summary>Exports the current settings to an arbitrary file (for moving them to another PC).</summary>
+    public void ExportTo(string path) => File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
+
+    /// <summary>Imports settings from a file previously written by <see cref="ExportTo"/>. Returns null if the file isn't valid.</summary>
+    public static AppSettings? ImportFrom(string path)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

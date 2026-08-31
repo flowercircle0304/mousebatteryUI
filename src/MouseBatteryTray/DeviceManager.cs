@@ -11,13 +11,14 @@ namespace MouseBatteryTray;
 /// </summary>
 public sealed class DeviceManager : IDisposable
 {
-    public sealed record DeviceStatus(string ProviderId, string Label, BatteryReading? Reading);
+    public sealed record DeviceStatus(string ProviderId, string Label, BatteryReading? Reading, TimeSpan? EstimatedTimeRemaining);
 
     private sealed record ActiveDevice(string ProviderId, IBatteryDeviceSession Session);
 
     private readonly object _lock = new();
     private readonly Dictionary<string, ActiveDevice> _active = new();
     private readonly Dictionary<string, DeviceStatus> _cache = new();
+    private readonly Dictionary<string, List<(DateTime Time, int Percent)>> _history = new();
     private volatile AppSettings _settings;
 
     private readonly Timer _scanTimer;
@@ -67,6 +68,7 @@ public sealed class DeviceManager : IDisposable
                 {
                     if (_active.Remove(key, out var disabledDev)) disabledDev.Session.Dispose();
                     _cache.Remove(key);
+                    _history.Remove(key);
                 }
                 continue;
             }
@@ -84,7 +86,7 @@ public sealed class DeviceManager : IDisposable
             lock (_lock)
             {
                 _active[key] = new ActiveDevice(provider.Id, session);
-                _cache[key] = new DeviceStatus(provider.Id, session.DeviceLabel, null);
+                _cache[key] = new DeviceStatus(provider.Id, session.DeviceLabel, null, null);
             }
         }
 
@@ -100,6 +102,7 @@ public sealed class DeviceManager : IDisposable
             {
                 if (_active.Remove(key, out var dev)) dev.Session.Dispose();
                 _cache.Remove(key);
+                _history.Remove(key);
             }
         }
     }
@@ -112,17 +115,64 @@ public sealed class DeviceManager : IDisposable
         foreach (var (key, dev) in snapshot)
         {
             var reading = dev.Session.GetLatest();
+            var estimate = reading is null ? null : UpdateHistoryAndEstimate(key, reading.Percent);
             lock (_lock)
             {
                 if (_active.ContainsKey(key))
-                    _cache[key] = new DeviceStatus(dev.ProviderId, dev.Session.DeviceLabel, reading);
+                    _cache[key] = new DeviceStatus(dev.ProviderId, dev.Session.DeviceLabel, reading, estimate);
             }
         }
     }
 
+    /// <summary>
+    /// Tracks battery% over time per device and, once there's enough of a stable downward trend,
+    /// estimates how long is left before it hits 0%. Returns null while there isn't enough history
+    /// yet or the trend isn't clearly decreasing (e.g. flat, or actually charging).
+    /// </summary>
+    private TimeSpan? UpdateHistoryAndEstimate(string key, int percent)
+    {
+        lock (_lock)
+        {
+            if (!_history.TryGetValue(key, out var samples))
+            {
+                samples = new List<(DateTime, int)>();
+                _history[key] = samples;
+            }
+
+            var now = DateTime.UtcNow;
+            if (samples.Count == 0 || samples[^1].Percent != percent)
+                samples.Add((now, percent));
+
+            samples.RemoveAll(s => now - s.Time > TimeSpan.FromHours(12));
+            if (samples.Count > 20) samples.RemoveRange(0, samples.Count - 20);
+
+            if (samples.Count < 2) return null;
+
+            var first = samples[0];
+            var last = samples[^1];
+            double elapsedHours = (last.Time - first.Time).TotalHours;
+            if (elapsedHours < 0.33) return null; // not enough spread yet for a stable slope
+
+            double percentPerHour = (last.Percent - first.Percent) / elapsedHours;
+            if (percentPerHour >= -0.05) return null; // flat or increasing (charging) — no meaningful estimate
+
+            double hoursRemaining = last.Percent / -percentPerHour;
+            if (hoursRemaining is < 0.1 or > 24 * 30) return null; // sanity guard against wild extrapolation
+
+            return TimeSpan.FromHours(hoursRemaining);
+        }
+    }
+
+    /// <summary>Sorted lowest-battery-first (most urgent first); devices still awaiting their first reading come last.</summary>
     public IReadOnlyList<DeviceStatus> GetReadings()
     {
-        lock (_lock) return _cache.Values.ToList();
+        lock (_lock)
+        {
+            return _cache.Values
+                .OrderBy(s => s.Reading?.Percent ?? int.MaxValue)
+                .ThenBy(s => s.Label, StringComparer.Ordinal)
+                .ToList();
+        }
     }
 
     public void Dispose()
@@ -134,6 +184,7 @@ public sealed class DeviceManager : IDisposable
             foreach (var dev in _active.Values) dev.Session.Dispose();
             _active.Clear();
             _cache.Clear();
+            _history.Clear();
         }
     }
 }

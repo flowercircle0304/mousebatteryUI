@@ -11,6 +11,8 @@ static class Program
 #if DEBUG
         if (args.Length > 0 && args[0] == "--snapshot")
         {
+            string lang = args.Length > 2 ? args[2] : "ja";
+            Strings.SetLanguage(lang);
             RenderSnapshot(args.Length > 1 ? args[1] : @"C:\Users\junya\AppData\Local\Temp\claude\D----------\f48a32ea-da3d-4df7-8d92-6e23c6df5fe2\scratchpad\popup_snapshot.png");
             return;
         }
@@ -35,9 +37,9 @@ static class Program
 
         var sample = new[]
         {
-            new DeviceManager.DeviceStatus("atk-compx", "ATK 8K Dongle (COMPX)", new BatteryReading(12, true, 3550)),
-            new DeviceManager.DeviceStatus("furycube-f1", "FURYCUBE F1", new BatteryReading(28, false, null)),
-            new DeviceManager.DeviceStatus("unknown", "Unknown Mouse", null),
+            new DeviceManager.DeviceStatus("atk-compx", "ATK 8K Dongle (COMPX)", new BatteryReading(12, true, 3550), null),
+            new DeviceManager.DeviceStatus("furycube-f1", "FURYCUBE F1", new BatteryReading(28, false, null), TimeSpan.FromHours(6.4)),
+            new DeviceManager.DeviceStatus("unknown", "Unknown Mouse", null, null),
         };
         popup.UpdateReadings(sample);
         popup.PerformLayout();

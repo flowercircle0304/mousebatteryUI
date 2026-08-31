@@ -11,14 +11,21 @@ internal sealed class SettingsForm : Form
     private readonly List<(IMouseBatteryProvider Provider, CheckBox Check, TextBox Path)> _rows = new();
 
     private CheckBox _startupCheck = null!;
-    private CheckBox _notifyCheck = null!;
-    private NumericUpDown _thresholdInput = null!;
+    private CheckBox _lowBatteryCheck = null!;
+    private NumericUpDown _lowBatteryThresholdInput = null!;
+    private CheckBox _fullChargeCheck = null!;
+    private NumericUpDown _fullChargeThresholdInput = null!;
+    private CheckBox _autoUpdateCheck = null!;
+    private ComboBox _languageCombo = null!;
+
+    private int _deviceSectionTop;
+    private int _deviceSectionBottom;
 
     public SettingsForm(AppSettings settings)
     {
         _settings = settings;
 
-        Text = "マウスバッテリー設定";
+        Text = Strings.SettingsTitle;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -26,14 +33,14 @@ internal sealed class SettingsForm : Form
         BackColor = Theme.Background;
         ForeColor = Theme.TextPrimary;
         Font = new Font("Segoe UI", 9f);
-        int visibleCount = ProviderRegistry.BuildAll(settings).Count(p => !settings.IsHidden(p.Id));
-        int hiddenCount = ProviderRegistry.BuildAll(settings).Count - visibleCount;
-        ClientSize = new Size(560, 260 + visibleCount * 40 + (hiddenCount > 0 ? 30 : 0));
         Padding = new Padding(16);
 
-        BuildGeneralSection();
-        BuildDeviceSection();
+        int generalBottom = BuildGeneralSection();
+        _deviceSectionTop = generalBottom + 16;
+        BuildDeviceSection(_deviceSectionTop);
         BuildFooter();
+
+        ClientSize = new Size(560, _deviceSectionBottom + 64);
     }
 
     private static Label SectionTitle(string text, int y) => new()
@@ -45,74 +52,233 @@ internal sealed class SettingsForm : Form
         Location = new Point(16, y),
     };
 
-    private void BuildGeneralSection()
+    /// <summary>Builds the general section and returns the Y just below its last row.</summary>
+    private int BuildGeneralSection()
     {
-        Controls.Add(SectionTitle("全般", 14));
+        Controls.Add(SectionTitle(Strings.SettingsSectionGeneral, 14));
+
+        int y = 44;
+
+        var languageLabel = new Label
+        {
+            Text = Strings.SettingsLanguage,
+            Location = new Point(16, y + 3),
+            AutoSize = true,
+            ForeColor = Theme.TextPrimary,
+        };
+        Controls.Add(languageLabel);
+
+        _languageCombo = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Location = new Point(languageLabel.Right + 8, y),
+            Width = 140,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.TextPrimary,
+        };
+        _languageCombo.Items.Add("日本語");
+        _languageCombo.Items.Add("English");
+        _languageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
+        Controls.Add(_languageCombo);
+        y += 32;
 
         _startupCheck = new CheckBox
         {
-            Text = "Windows ログイン時に自動起動する",
+            Text = Strings.SettingsAutoStart,
             Checked = StartupRegistration.IsEnabled(),
-            Location = new Point(16, 44),
+            Location = new Point(16, y),
             AutoSize = true,
             ForeColor = Theme.TextPrimary,
             FlatStyle = FlatStyle.Flat,
         };
         Controls.Add(_startupCheck);
+        y += 28;
 
-        _notifyCheck = new CheckBox
+        _autoUpdateCheck = new CheckBox
         {
-            Text = "バッテリー残量が下がったら通知する（しきい値：",
-            Checked = _settings.LowBatteryNotificationsEnabled,
-            Location = new Point(16, 74),
+            Text = Strings.SettingsAutoUpdateCheck,
+            Checked = _settings.AutoUpdateCheckEnabled,
+            Location = new Point(16, y),
             AutoSize = true,
             ForeColor = Theme.TextPrimary,
             FlatStyle = FlatStyle.Flat,
         };
-        Controls.Add(_notifyCheck);
+        Controls.Add(_autoUpdateCheck);
+        y += 28;
 
-        _thresholdInput = new NumericUpDown
+        (_lowBatteryCheck, _lowBatteryThresholdInput) = BuildThresholdRow(
+            y, Strings.SettingsLowBatteryPrefix, Strings.SettingsLowBatterySuffix,
+            _settings.LowBatteryNotificationsEnabled, _settings.LowBatteryThreshold, 1, 90);
+        y += 30;
+
+        (_fullChargeCheck, _fullChargeThresholdInput) = BuildThresholdRow(
+            y, Strings.SettingsFullChargePrefix, Strings.SettingsFullChargeSuffix,
+            _settings.FullChargeNotificationsEnabled, _settings.FullChargeThreshold, 50, 100);
+        y += 30;
+
+        var exportButton = new Button
         {
-            Minimum = 1,
-            Maximum = 90,
-            Value = Math.Clamp(_settings.LowBatteryThreshold, 1, 90),
-            Location = new Point(_notifyCheck.Right + 4, 72),
+            Text = Strings.SettingsExport,
+            Location = new Point(16, y),
+            Width = 150,
+            Height = 24,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.AccentCyan,
+        };
+        exportButton.FlatAppearance.BorderColor = Theme.Border;
+        exportButton.Click += (_, _) => ExportSettings();
+        Controls.Add(exportButton);
+
+        var importButton = new Button
+        {
+            Text = Strings.SettingsImport,
+            Location = new Point(174, y),
+            Width = 150,
+            Height = 24,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.AccentCyan,
+        };
+        importButton.FlatAppearance.BorderColor = Theme.Border;
+        importButton.Click += (_, _) => ImportSettings();
+        Controls.Add(importButton);
+        y += 30;
+
+        return y;
+    }
+
+    private (CheckBox Check, NumericUpDown Threshold) BuildThresholdRow(
+        int y, string prefixText, string suffixText, bool enabled, int threshold, int min, int max)
+    {
+        var check = new CheckBox
+        {
+            Text = prefixText,
+            Checked = enabled,
+            Location = new Point(16, y),
+            AutoSize = true,
+            ForeColor = Theme.TextPrimary,
+            FlatStyle = FlatStyle.Flat,
+        };
+        Controls.Add(check);
+
+        var input = new NumericUpDown
+        {
+            Minimum = min,
+            Maximum = max,
+            Value = Math.Clamp(threshold, min, max),
+            Location = new Point(check.Right + 4, y - 2),
             Width = 55,
             BackColor = Theme.CardBackground,
             ForeColor = Theme.TextPrimary,
+            Enabled = enabled,
         };
-        Controls.Add(_thresholdInput);
+        Controls.Add(input);
 
-        var percentLabel = new Label
+        var suffixLabel = new Label
         {
-            Text = "% 以下）",
-            Location = new Point(_thresholdInput.Right + 4, 76),
+            Text = suffixText,
+            Location = new Point(input.Right + 4, y + 2),
             AutoSize = true,
             ForeColor = Theme.TextPrimary,
         };
-        Controls.Add(percentLabel);
+        Controls.Add(suffixLabel);
 
-        _notifyCheck.CheckedChanged += (_, _) => _thresholdInput.Enabled = _notifyCheck.Checked;
-        _thresholdInput.Enabled = _notifyCheck.Checked;
+        check.CheckedChanged += (_, _) => input.Enabled = check.Checked;
+        return (check, input);
     }
 
-    private void BuildDeviceSection()
+    private void ExportSettings()
     {
-        Controls.Add(SectionTitle("対応マウス", 118));
+        using var dlg = new SaveFileDialog
+        {
+            Filter = Strings.JsonFileFilter,
+            FileName = "mouse-battery-settings.json",
+            Title = Strings.ExportDialogTitle,
+        };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            _settings.ExportTo(dlg.FileName);
+            MessageBox.Show(this, Strings.ExportSucceeded, Strings.SettingsTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, Strings.ExportFailed(ex.Message), Strings.SettingsTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ImportSettings()
+    {
+        using var dlg = new OpenFileDialog
+        {
+            Filter = Strings.JsonFileFilter,
+            Title = Strings.ImportDialogTitle,
+        };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        var imported = AppSettings.ImportFrom(dlg.FileName);
+        if (imported is null)
+        {
+            MessageBox.Show(this, Strings.ImportReadFailed, Strings.SettingsTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            this,
+            Strings.ImportConfirmText,
+            Strings.ImportConfirmTitle,
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+        if (confirm != DialogResult.Yes) return;
+
+        CopyInto(imported, _settings);
+        _settings.Save();
+
+        MessageBox.Show(
+            this,
+            Strings.NoticeImported,
+            Strings.SettingsTitle,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+
+        DialogResult = DialogResult.Cancel;
+        Close();
+    }
+
+    private static void CopyInto(AppSettings source, AppSettings target)
+    {
+        target.Devices = source.Devices;
+        target.DiscoveredDevices = source.DiscoveredDevices;
+        target.LowBatteryNotificationsEnabled = source.LowBatteryNotificationsEnabled;
+        target.LowBatteryThreshold = source.LowBatteryThreshold;
+        target.FullChargeNotificationsEnabled = source.FullChargeNotificationsEnabled;
+        target.FullChargeThreshold = source.FullChargeThreshold;
+        target.PopupPinned = source.PopupPinned;
+        target.PopupPinnedX = source.PopupPinnedX;
+        target.PopupPinnedY = source.PopupPinnedY;
+        target.AutoUpdateCheckEnabled = source.AutoUpdateCheckEnabled;
+        target.Language = source.Language;
+    }
+
+    private void BuildDeviceSection(int top)
+    {
+        Controls.Add(SectionTitle(Strings.SettingsSectionDevices, top));
 
         var hint = new Label
         {
-            Text = "チェックを外すとそのマウスの監視を停止します。連携ソフトのパス(または URL)を登録すると、\nポップアップでそのデバイスをクリックしたときに起動できます。",
+            Text = Strings.SettingsDeviceHint,
             ForeColor = Theme.TextMuted,
             AutoSize = true,
-            Location = new Point(16, 144),
+            Location = new Point(16, top + 26),
         };
         Controls.Add(hint);
 
         var addButton = new Button
         {
-            Text = "＋ 新しいマウスを追加...",
-            Location = new Point(370, 114),
+            Text = Strings.SettingsAddMouse,
+            Location = new Point(370, top - 4),
             Width = 170,
             Height = 24,
             FlatStyle = FlatStyle.Flat,
@@ -127,8 +293,8 @@ internal sealed class SettingsForm : Form
             {
                 MessageBox.Show(
                     this,
-                    "マウスを追加しました。反映するには一度この設定画面を閉じて開き直してください。",
-                    "マウスバッテリー設定",
+                    Strings.NoticeAdded,
+                    Strings.SettingsTitle,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
@@ -138,7 +304,7 @@ internal sealed class SettingsForm : Form
         var allProviders = ProviderRegistry.BuildAll(_settings);
         var hiddenProviders = allProviders.Where(p => _settings.IsHidden(p.Id)).ToList();
 
-        int y = 188;
+        int y = top + 70;
         foreach (var provider in allProviders)
         {
             if (_settings.IsHidden(provider.Id)) continue;
@@ -170,12 +336,12 @@ internal sealed class SettingsForm : Form
                 BackColor = Theme.CardBackground,
                 ForeColor = Theme.TextPrimary,
                 BorderStyle = BorderStyle.FixedSingle,
-                PlaceholderText = "未設定（クリックしても何も起きません）",
+                PlaceholderText = Strings.SettingsCompanionPlaceholder,
             };
 
             var browse = new Button
             {
-                Text = "参照...",
+                Text = Strings.SettingsBrowse,
                 Location = new Point(420, y + 2),
                 Width = 60,
                 Height = 24,
@@ -188,8 +354,8 @@ internal sealed class SettingsForm : Form
             {
                 using var dlg = new OpenFileDialog
                 {
-                    Filter = "実行ファイル (*.exe)|*.exe|すべてのファイル (*.*)|*.*",
-                    Title = $"{provider.DisplayName} の連携ソフトを選択",
+                    Filter = Strings.ExeFileFilter,
+                    Title = Strings.SettingsChooseCompanionTitle(provider.DisplayName),
                 };
                 if (dlg.ShowDialog(this) == DialogResult.OK)
                     pathBox.Text = dlg.FileName;
@@ -204,7 +370,7 @@ internal sealed class SettingsForm : Form
 
             var delete = new Button
             {
-                Text = "削除",
+                Text = Strings.SettingsDelete,
                 Location = new Point(486, y + 2),
                 Width = 58,
                 Height = 24,
@@ -228,7 +394,7 @@ internal sealed class SettingsForm : Form
         {
             var unhideLink = new LinkLabel
             {
-                Text = $"非表示にした {hiddenProviders.Count} 件を再表示する",
+                Text = Strings.SettingsUnhideLink(hiddenProviders.Count),
                 Location = new Point(16, y + 6),
                 AutoSize = true,
                 LinkColor = Theme.AccentCyan,
@@ -243,17 +409,15 @@ internal sealed class SettingsForm : Form
         _deviceSectionBottom = y;
     }
 
-    private int _deviceSectionBottom;
-
     private void BuildFooter()
     {
         int y = _deviceSectionBottom;
 
         var saveButton = new Button
         {
-            Text = "保存",
+            Text = Strings.SettingsSave,
             DialogResult = DialogResult.OK,
-            Location = new Point(ClientSize.Width - 176, y + 16),
+            Location = new Point(560 - 176, y + 16),
             Width = 80,
             Height = 30,
             FlatStyle = FlatStyle.Flat,
@@ -265,9 +429,9 @@ internal sealed class SettingsForm : Form
 
         var cancelButton = new Button
         {
-            Text = "キャンセル",
+            Text = Strings.SettingsCancel,
             DialogResult = DialogResult.Cancel,
-            Location = new Point(ClientSize.Width - 88, y + 16),
+            Location = new Point(560 - 88, y + 16),
             Width = 72,
             Height = 30,
             FlatStyle = FlatStyle.Flat,
@@ -286,8 +450,8 @@ internal sealed class SettingsForm : Form
     {
         var confirm = MessageBox.Show(
             this,
-            $"「{provider.DisplayName}」をウィザードで追加した一覧から削除しますか？\n（既定で対応しているマウスには影響しません）",
-            "削除の確認",
+            Strings.ConfirmDeleteCustomText(provider.DisplayName),
+            Strings.ConfirmDeleteCustomTitle,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
         if (confirm != DialogResult.Yes) return;
@@ -298,8 +462,8 @@ internal sealed class SettingsForm : Form
 
         MessageBox.Show(
             this,
-            "削除しました。反映するには一度この設定画面を閉じて開き直してください。",
-            "マウスバッテリー設定",
+            Strings.NoticeDeleted,
+            Strings.SettingsTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
 
@@ -311,8 +475,8 @@ internal sealed class SettingsForm : Form
     {
         var confirm = MessageBox.Show(
             this,
-            $"「{provider.DisplayName}」を一覧から非表示にしますか？\n監視も停止します。後から「非表示にしたマウスを再表示する」でいつでも元に戻せます。",
-            "非表示の確認",
+            Strings.ConfirmHideBuiltInText(provider.DisplayName),
+            Strings.ConfirmHideBuiltInTitle,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
         if (confirm != DialogResult.Yes) return;
@@ -322,8 +486,8 @@ internal sealed class SettingsForm : Form
 
         MessageBox.Show(
             this,
-            "非表示にしました。反映するには一度この設定画面を閉じて開き直してください。",
-            "マウスバッテリー設定",
+            Strings.NoticeHidden,
+            Strings.SettingsTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
 
@@ -339,8 +503,8 @@ internal sealed class SettingsForm : Form
 
         MessageBox.Show(
             this,
-            "再表示しました。反映するには一度この設定画面を閉じて開き直してください。",
-            "マウスバッテリー設定",
+            Strings.NoticeUnhidden,
+            Strings.SettingsTitle,
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
 
@@ -352,8 +516,12 @@ internal sealed class SettingsForm : Form
     {
         StartupRegistration.SetEnabled(_startupCheck.Checked);
 
-        _settings.LowBatteryNotificationsEnabled = _notifyCheck.Checked;
-        _settings.LowBatteryThreshold = (int)_thresholdInput.Value;
+        _settings.Language = _languageCombo.SelectedIndex == 1 ? "en" : "ja";
+        _settings.AutoUpdateCheckEnabled = _autoUpdateCheck.Checked;
+        _settings.LowBatteryNotificationsEnabled = _lowBatteryCheck.Checked;
+        _settings.LowBatteryThreshold = (int)_lowBatteryThresholdInput.Value;
+        _settings.FullChargeNotificationsEnabled = _fullChargeCheck.Checked;
+        _settings.FullChargeThreshold = (int)_fullChargeThresholdInput.Value;
 
         foreach (var (provider, check, path) in _rows)
         {

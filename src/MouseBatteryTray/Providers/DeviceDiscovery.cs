@@ -24,7 +24,7 @@ public static class DeviceDiscovery
 
             string name;
             try { name = g.First().GetProductName(); } catch { name = ""; }
-            if (string.IsNullOrWhiteSpace(name)) name = $"不明なデバイス (VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4})";
+            if (string.IsNullOrWhiteSpace(name)) name = Strings.WizardUnknownDevice(g.Key.VendorID, g.Key.ProductID);
 
             result.Add(new UnrecognizedDevice(g.Key.VendorID, g.Key.ProductID, name));
         }
@@ -67,7 +67,7 @@ public static class DeviceDiscovery
 
                 if (samples.Count == 0)
                 {
-                    log?.Invoke($"  受信レポート長{inLen}: 応答なし（スキップ）");
+                    log?.Invoke("  " + Strings.DiscoveryNoResponse(inLen));
                     continue;
                 }
 
@@ -75,11 +75,11 @@ public static class DeviceDiscovery
                 {
                     if (samples.All(s => s[offset] == (byte)targetPercent))
                     {
-                        log?.Invoke($"  一致しました: 受信レポート長{inLen} / オフセット{offset}");
+                        log?.Invoke("  " + Strings.DiscoveryPassiveMatch(inLen, offset));
                         return new PassiveMatch(inLen, offset);
                     }
                 }
-                log?.Invoke($"  受信レポート長{inLen}: {samples.Count}件受信、一致バイトなし");
+                log?.Invoke("  " + Strings.DiscoveryNoMatch(inLen, samples.Count));
             }
         }
         return null;
@@ -104,7 +104,7 @@ public static class DeviceDiscovery
 
         if (collections.Count == 0)
         {
-            log?.Invoke("  COMPX形式（17バイト入出力）のコレクションが見つかりません");
+            log?.Invoke("  " + Strings.DiscoveryNoCompxCollection);
             return null;
         }
 
@@ -131,15 +131,15 @@ public static class DeviceDiscovery
                         int n = stream.Read(inBuf);
                         if (n >= 10 && inBuf[1] == commandId && inBuf[6] == (byte)targetPercent)
                         {
-                            log?.Invoke("  一致しました: COMPX方式（ReportId=8, commandId=4, オフセット6）");
+                            log?.Invoke("  " + Strings.DiscoveryActiveMatch);
                             return new ActiveMatch(outputReportId, commandId, 6);
                         }
                     }
-                    log?.Invoke("  応答はありましたが値が一致しませんでした");
+                    log?.Invoke("  " + Strings.DiscoveryActiveNoMatch);
                 }
                 catch (Exception ex)
                 {
-                    log?.Invoke($"  エラー: {ex.GetType().Name}");
+                    log?.Invoke("  " + Strings.DiscoveryError(ex.GetType().Name));
                 }
             }
         }
