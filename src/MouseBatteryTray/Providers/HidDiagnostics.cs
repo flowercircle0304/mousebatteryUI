@@ -36,9 +36,25 @@ public static class HidDiagnostics
             sb.AppendLine($"VID_{group.Key.VendorID:X4}&PID_{group.Key.ProductID:X4}  \"{name}\"");
             foreach (var d in group)
             {
-                sb.AppendLine($"    In={d.GetMaxInputReportLength(),-4} Out={d.GetMaxOutputReportLength(),-4} Feat={d.GetMaxFeatureReportLength(),-4}  {d.DevicePath}");
+                string openResult = TryOpenRaw(d);
+                sb.AppendLine($"    In={d.GetMaxInputReportLength(),-4} Out={d.GetMaxOutputReportLength(),-4} Feat={d.GetMaxFeatureReportLength(),-4} Open=[{openResult}]  {d.DevicePath}");
             }
         }
+
+        sb.AppendLine();
+        sb.AppendLine(new string('=', 60));
+        sb.AppendLine("## 関連しそうな常駐プロセス / Possibly-related running processes");
+        sb.AppendLine("(見つかった場合、これらのソフトがデバイスを排他的に掴んでいて読み取りを妨げていることがあります。可能なら終了してから再試行してください)");
+        sb.AppendLine();
+
+        string[] keywords = { "razer", "synapse", "logi", "ghub", "g hub", "atk", "furycube", "corsair", "icue", "steelseries", "roccat" };
+        var suspicious = System.Diagnostics.Process.GetProcesses()
+            .Where(p => keywords.Any(k => p.ProcessName.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            .Select(p => p.ProcessName)
+            .Distinct()
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+        sb.AppendLine(suspicious.Count == 0 ? "(該当なし)" : string.Join(", ", suspicious));
 
         sb.AppendLine();
         sb.AppendLine(new string('=', 60));
@@ -71,5 +87,23 @@ public static class HidDiagnostics
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>Attempts to actually open (and immediately close) one collection, returning "OK" or
+    /// the real exception message (e.g. "Access is denied" when another app/service holds it
+    /// exclusively) rather than just a bool, since that message is exactly what tells us whether a
+    /// "can't open" report is a protocol mismatch or a competing-reader problem like the one seen
+    /// with ATK HUB during this project's own development.</summary>
+    private static string TryOpenRaw(HidDevice device)
+    {
+        try
+        {
+            using var stream = device.Open();
+            return "OK";
+        }
+        catch (Exception ex)
+        {
+            return $"{ex.GetType().Name}: {ex.Message}";
+        }
     }
 }
