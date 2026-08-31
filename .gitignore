@@ -1,0 +1,19 @@
+## .NET build output
+bin/
+obj/
+publish/
+
+## Loose build artifacts that sometimes land in the repo root
+*.exe
+*.pdb
+!docs/**
+
+## IDE / user-specific
+*.user
+.vs/
+.vscode/
+*.suo
+
+## OS
+Thumbs.db
+Desktop.ini
