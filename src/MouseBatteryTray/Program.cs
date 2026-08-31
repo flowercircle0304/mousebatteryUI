@@ -30,15 +30,15 @@ static class Program
     private static void RenderSnapshot(string outPath)
     {
         var settings = new AppSettings();
-        settings.GetOrCreate("atk-compx").CompanionPath = @"C:\Program Files (x86)\ATK HUB\ATK HUB.exe";
+        settings.GetOrCreate("atk-compx").CompanionPath = @"C:\Program Files\Vendor App\VendorApp.exe";
 
         using var popup = new BatteryPopupForm(settings);
         var _ = popup.Handle; // force native handle creation so DrawToBitmap works
 
         var sample = new[]
         {
-            new DeviceManager.DeviceStatus("atk-compx", "ATK 8K Dongle (COMPX)", new BatteryReading(12, true, 3550), null),
-            new DeviceManager.DeviceStatus("furycube-f1", "FURYCUBE F1", new BatteryReading(28, false, null), TimeSpan.FromHours(6.4)),
+            new DeviceManager.DeviceStatus("atk-compx", "Wireless Mouse A", new BatteryReading(12, true, 3550), null),
+            new DeviceManager.DeviceStatus("furycube-f1", "Wireless Mouse B", new BatteryReading(28, false, null), TimeSpan.FromHours(6.4)),
             new DeviceManager.DeviceStatus("unknown", "Unknown Mouse", null, null),
         };
         popup.UpdateReadings(sample);
