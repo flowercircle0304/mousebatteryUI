@@ -1,0 +1,74 @@
+{
+  "_readme": "コミュニティ投入型のマウス対応テンプレート集です。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp か razer、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。実機で動作確認できたら Verified を true にしてPRしてください。",
+  "devices": [
+    {
+      "Manufacturer": "Logitech",
+      "Model": "HID++ 2.0 対応レシーバー全般 (Unifying / LIGHTSPEED / Bolt)",
+      "Kind": "logitech-hidpp",
+      "VendorId": 1133,
+      "ProductId": 0,
+      "Verified": false,
+      "Notes": "公開仕様（Solaar / logitray プロジェクト）を基に実装。実機未検証。レシーバーの型番を問わず、HID++2.0対応マウス全般に対応を試みます。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Viper V3 Pro (Wireless)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 193,
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Viper V3 Pro (Wired)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 192,
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "DeathAdder V3 Pro (Wireless)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 183,
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Basilisk V3 Pro (Wireless)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 171,
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Viper Ultimate (Wireless)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 123,
+      "RazerTransactionId": 255,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "DeathAdder V2 Pro (Wireless)",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 125,
+      "RazerTransactionId": 63,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+    }
+  ]
+}

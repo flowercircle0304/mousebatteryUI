@@ -97,6 +97,22 @@ public static class Strings
     public static string ImportConfirmTitle => P("インポートの確認", "Confirm import");
     public static string ExeFileFilter => P("実行ファイル (*.exe)|*.exe|すべてのファイル (*.*)|*.*", "Executable (*.exe)|*.exe|All files (*.*)|*.*");
 
+    // ===== Template library =====
+    public static string SettingsAddFromTemplate => P("テンプレートから追加...", "Add from template...");
+    public static string TemplateTitle => P("テンプレートからマウスを追加", "Add a mouse from a template");
+    public static string TemplateHint => P(
+        "Logitech・Razerなど、公開仕様を基に実装したテンプレートです。実機での検証はされていないものが含まれます（「未検証」表記）。",
+        "Templates for Logitech, Razer, etc. implemented from public protocol documentation. Entries marked \"unverified\" haven't been confirmed on real hardware.");
+    public static string TemplateLoading => P("テンプレートを取得中...", "Fetching templates...");
+    public static string TemplateLoadFailed => P("テンプレートを取得できませんでした（オフライン？）。同梱の一覧を表示します。", "Couldn't fetch templates (offline?). Showing the bundled list instead.");
+    public static string TemplateVerified => P("検証済み", "Verified");
+    public static string TemplateUnverified => P("未検証", "Unverified");
+    public static string TemplateAddButton => P("追加", "Add");
+    public static string TemplateClose => P("閉じる", "Close");
+    public static string TemplateAddedNotice => P(
+        "追加しました。設定画面を閉じて開き直すと反映されます。実際に残量が表示されるか確認してください（未検証テンプレートの場合は特に）。",
+        "Added. Close and reopen Settings to apply it. Please check that a battery reading actually shows up (especially for unverified templates).");
+
     // ===== Add-mouse wizard =====
     public static string WizardTitle => P("新しいマウスを追加", "Add a new mouse");
     public static string WizardTargetDevice => P("対象デバイス", "Target device");

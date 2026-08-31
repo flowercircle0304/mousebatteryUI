@@ -301,10 +301,28 @@ internal sealed class SettingsForm : Form
         };
         Controls.Add(addButton);
 
+        var templateButton = new Button
+        {
+            Text = Strings.SettingsAddFromTemplate,
+            Location = new Point(370, top + 60),
+            Width = 170,
+            Height = 24,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.AccentViolet,
+        };
+        templateButton.FlatAppearance.BorderColor = Theme.Border;
+        templateButton.Click += (_, _) =>
+        {
+            using var library = new TemplateLibraryForm(_settings);
+            library.ShowDialog(this);
+        };
+        Controls.Add(templateButton);
+
         var allProviders = ProviderRegistry.BuildAll(_settings);
         var hiddenProviders = allProviders.Where(p => _settings.IsHidden(p.Id)).ToList();
 
-        int y = top + 70;
+        int y = top + 96;
         foreach (var provider in allProviders)
         {
             if (_settings.IsHidden(provider.Id)) continue;

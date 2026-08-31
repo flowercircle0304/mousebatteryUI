@@ -82,6 +82,20 @@ static class Program
         string settingsPath = Path.Combine(dir, "settings_snapshot.png");
         settingsBmp.Save(settingsPath, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine($"Saved settings snapshot to {settingsPath}");
+
+        using var templateForm = new TemplateLibraryForm(settings);
+        templateForm.StartPosition = FormStartPosition.Manual;
+        templateForm.Location = new Point(0, 0);
+        templateForm.Show();
+        for (int i = 0; i < 60; i++) { Application.DoEvents(); System.Threading.Thread.Sleep(100); }
+        var templateRect = templateForm.Bounds;
+        using var templateBmp = new Bitmap(templateRect.Width, templateRect.Height);
+        using (var sg3 = Graphics.FromImage(templateBmp))
+            sg3.CopyFromScreen(templateRect.Location, Point.Empty, templateRect.Size);
+        templateForm.Hide();
+        string templatePath = Path.Combine(dir, "template_snapshot.png");
+        templateBmp.Save(templatePath, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine($"Saved template snapshot to {templatePath}");
     }
 
     private static void TestDiscovery()

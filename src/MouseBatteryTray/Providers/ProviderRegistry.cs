@@ -37,6 +37,8 @@ public static class ProviderRegistry
             {
                 "passive-push" => new PassivePushHidProvider(d.Id, d.DisplayName, d.VendorId, d.ProductId, d.ReportLength, d.BatteryByteOffset),
                 "compx" => new CompxDongleProvider(d.Id, d.DisplayName, d.VendorId, new[] { d.ProductId }, (byte)d.OutputReportId, (byte)d.CommandId),
+                "logitech-hidpp" => new LogitechHidPpProvider(),
+                "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }, (byte)d.RazerTransactionId),
                 _ => null,
             };
             if (provider is not null) list.Add(provider);

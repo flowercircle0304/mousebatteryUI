@@ -25,7 +25,7 @@ public sealed class DeviceSetting
 /// </summary>
 public sealed class DiscoveredDeviceSpec
 {
-    /// <summary>"passive-push" or "compx" — see <see cref="Providers.ProviderRegistry.BuildAll"/>.</summary>
+    /// <summary>"passive-push", "compx", "logitech-hidpp", or "razer" — see <see cref="Providers.ProviderRegistry.BuildAll"/>.</summary>
     public string Kind { get; set; } = "";
     public string Id { get; set; } = "";
     public string DisplayName { get; set; } = "";
@@ -39,6 +39,9 @@ public sealed class DiscoveredDeviceSpec
     // compx
     public int OutputReportId { get; set; } = 8;
     public int CommandId { get; set; } = 4;
+
+    // razer
+    public int RazerTransactionId { get; set; } = 0x1F;
 }
 
 public sealed class AppSettings
