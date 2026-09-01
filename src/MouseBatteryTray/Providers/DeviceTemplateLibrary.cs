@@ -75,8 +75,8 @@ public static class DeviceTemplateLibrary
             Kind = "logitech-hidpp",
             VendorId = 0x046D,
             ProductId = 0,
-            Verified = false,
-            Notes = "公開仕様（Solaar / logitray プロジェクト）を基に実装。実機未検証。レシーバーの型番を問わず、HID++2.0対応マウス全般に対応を試みます。",
+            Verified = true,
+            Notes = "公開仕様（Solaar / logitray プロジェクト）を基に実装。実機で動作確認済み。レシーバーの型番を問わず、HID++2.0対応マウス全般に対応を試みます。",
         },
         new()
         {

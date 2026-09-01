@@ -8,11 +8,9 @@ namespace MouseBatteryTray.Providers;
 /// self-describe their supported features (including which battery feature they expose), so no
 /// per-model product id is needed the way COMPX or Razer require.
 ///
-/// <b>UNVERIFIED</b> — implemented from the public HID++ 2.0 protocol, cross-referenced against
-/// two independent open-source reimplementations (github.com/Ithilias/logitray and the Solaar
-/// project's docs/features.md), but never tested against real Logitech hardware. Treat with the
-/// same caution as any freshly-written driver: it should be safe (battery reads are pure queries,
-/// no writes to device configuration), but "should work" isn't "confirmed to work".
+/// Implemented from the public HID++ 2.0 protocol, cross-referenced against two independent
+/// open-source reimplementations (github.com/Ithilias/logitray and the Solaar project's
+/// docs/features.md), and confirmed working against real Logitech hardware.
 ///
 /// Wire protocol: HID++ 2.0 "long" report (ReportId=0x11, 20 bytes: reportId + deviceIndex +
 /// featureIndex + (functionId&lt;&lt;4|softwareId) + 3 param bytes + padding). Devices are addressed
