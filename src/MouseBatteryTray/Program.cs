@@ -92,13 +92,11 @@ static class Program
 
         using var templateForm = new TemplateLibraryForm(settings);
         templateForm.StartPosition = FormStartPosition.Manual;
-        templateForm.Location = new Point(0, 0);
+        templateForm.Location = new Point(-3000, -3000); // off-screen: avoids real-window z-order issues while still forcing a real Show()
         templateForm.Show();
         for (int i = 0; i < 60; i++) { Application.DoEvents(); System.Threading.Thread.Sleep(100); }
-        var templateRect = templateForm.Bounds;
-        using var templateBmp = new Bitmap(templateRect.Width, templateRect.Height);
-        using (var sg3 = Graphics.FromImage(templateBmp))
-            sg3.CopyFromScreen(templateRect.Location, Point.Empty, templateRect.Size);
+        using var templateBmp = new Bitmap(templateForm.Width, templateForm.Height);
+        templateForm.DrawToBitmap(templateBmp, new Rectangle(0, 0, templateForm.Width, templateForm.Height));
         templateForm.Hide();
         string templatePath = Path.Combine(dir, "template_snapshot.png");
         templateBmp.Save(templatePath, System.Drawing.Imaging.ImageFormat.Png);

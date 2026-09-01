@@ -48,7 +48,7 @@ public static class ProviderRegistry
                     chargingByteOffset: d.ChargingByteOffset,
                     voltageByteOffset: d.VoltageByteOffset),
                 "logitech-hidpp" => new LogitechHidPpProvider(d.DisplayName),
-                "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }, (byte)d.RazerTransactionId),
+                "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), (byte)d.RazerTransactionId),
                 _ => null,
             };
             if (provider is not null) list.Add(provider);

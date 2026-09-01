@@ -43,6 +43,12 @@ public sealed class DiscoveredDeviceSpec
     // razer
     public int RazerTransactionId { get; set; } = 0x1F;
 
+    /// <summary>Extra product ids that are the same physical mouse under a different USB identity —
+    /// most commonly a wired-mode PID distinct from the wireless-dongle PID in <see cref="ProductId"/>.
+    /// Plugging in the charging cable makes many Razer mice re-enumerate under this different PID, so
+    /// without it here the device looks like it vanished the moment it starts charging.</summary>
+    public List<int> AdditionalProductIds { get; set; } = new();
+
     // compx (optional — a wizard-discovered device leaves these null, and CompxDongleProvider
     // falls back to positions relative to BatteryByteOffset, mirroring the one confirmed COMPX
     // layout's struct order: percent, then charging, then a 2-byte voltage)

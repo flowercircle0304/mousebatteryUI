@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MouseBatteryTray</AssemblyName>
     <RootNamespace>MouseBatteryTray</RootNamespace>
-    <Version>0.4.6</Version>
+    <Version>0.4.7</Version>
 
     <!-- `dotnet publish -c Release` (no extra flags needed) produces a single self-contained .exe
          in bin\Release\net8.0-windows\win-x64\publish\ that runs on a machine without .NET installed. -->

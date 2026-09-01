@@ -189,6 +189,7 @@ internal sealed class TemplateLibraryForm : Form
             DisplayName = $"{template.Manufacturer} {template.Model}",
             VendorId = template.VendorId,
             ProductId = template.ProductId,
+            AdditionalProductIds = new List<int>(template.AdditionalProductIds),
             RazerTransactionId = template.RazerTransactionId,
         };
 

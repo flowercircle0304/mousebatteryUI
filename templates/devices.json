@@ -1,5 +1,5 @@
 {
-  "_readme": "コミュニティ投入型のマウス対応テンプレート集です。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp か razer、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。実機で動作確認できたら Verified を true にしてPRしてください。",
+  "_readme": "コミュニティ投入型のマウス対応テンプレート集です。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp か razer、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理マウスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
   "devices": [
     {
       "Manufacturer": "Logitech",
@@ -12,63 +12,58 @@
     },
     {
       "Manufacturer": "Razer",
-      "Model": "Viper V3 Pro (Wireless)",
+      "Model": "Viper V3 Pro",
       "Kind": "razer",
       "VendorId": 5426,
       "ProductId": 193,
+      "AdditionalProductIds": [192],
       "RazerTransactionId": 31,
-      "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+      "Verified": true,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機で動作確認済み（無線・有線どちらのPIDも登録、充電中の切り替えに対応）。"
     },
     {
       "Manufacturer": "Razer",
-      "Model": "Viper V3 Pro (Wired)",
-      "Kind": "razer",
-      "VendorId": 5426,
-      "ProductId": 192,
-      "RazerTransactionId": 31,
-      "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
-    },
-    {
-      "Manufacturer": "Razer",
-      "Model": "DeathAdder V3 Pro (Wireless)",
+      "Model": "DeathAdder V3 Pro",
       "Kind": "razer",
       "VendorId": 5426,
       "ProductId": 183,
+      "AdditionalProductIds": [182],
       "RazerTransactionId": 31,
       "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
     },
     {
       "Manufacturer": "Razer",
-      "Model": "Basilisk V3 Pro (Wireless)",
+      "Model": "Basilisk V3 Pro",
       "Kind": "razer",
       "VendorId": 5426,
       "ProductId": 171,
+      "AdditionalProductIds": [170],
       "RazerTransactionId": 31,
       "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
     },
     {
       "Manufacturer": "Razer",
-      "Model": "Viper Ultimate (Wireless)",
+      "Model": "Viper Ultimate",
       "Kind": "razer",
       "VendorId": 5426,
       "ProductId": 123,
+      "AdditionalProductIds": [122],
       "RazerTransactionId": 255,
       "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
     },
     {
       "Manufacturer": "Razer",
-      "Model": "DeathAdder V2 Pro (Wireless)",
+      "Model": "DeathAdder V2 Pro",
       "Kind": "razer",
       "VendorId": 5426,
       "ProductId": 125,
+      "AdditionalProductIds": [124],
       "RazerTransactionId": 63,
       "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証。"
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
     }
   ]
 }
