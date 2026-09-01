@@ -32,6 +32,11 @@ internal sealed class BatteryPopupForm : Form
     private Point _dragStartMouseScreen;
     private Point _dragStartFormLocation;
 
+    // Drives the charging glyph's flicker — only ticks while visible and something is actually
+    // charging, so an idle popup (or one with nothing plugged in) never wastes CPU repainting.
+    private readonly System.Windows.Forms.Timer _chargeAnimTimer;
+    private float _chargePhase;
+
     public event Action? RefreshRequested;
     public event Action? ExitRequested;
     public event Action? SettingsRequested;
@@ -52,6 +57,25 @@ internal sealed class BatteryPopupForm : Form
         Height = HeaderHeight + FooterHeight + Pad;
 
         Deactivate += (_, _) => { if (!_pinned) Hide(); };
+
+        _chargeAnimTimer = new System.Windows.Forms.Timer { Interval = 60 };
+        _chargeAnimTimer.Tick += (_, _) =>
+        {
+            if (!Visible || !AnyCharging())
+            {
+                _chargeAnimTimer.Stop();
+                return;
+            }
+            _chargePhase += 0.16f;
+            Invalidate();
+        };
+    }
+
+    private bool AnyCharging() => _readings.Any(r => r.Reading?.Charging == true);
+
+    private void StartChargeAnimIfNeeded()
+    {
+        if (Visible && AnyCharging() && !_chargeAnimTimer.Enabled) _chargeAnimTimer.Start();
     }
 
     public void UpdateReadings(IReadOnlyList<DeviceManager.DeviceStatus> readings)
@@ -60,6 +84,7 @@ internal sealed class BatteryPopupForm : Form
         int count = Math.Max(readings.Count, 1);
         Height = HeaderHeight + count * (CardHeight + CardGap) + FooterHeight + Pad;
         Region = new Region(Gfx.RoundedRect(new RectangleF(0, 0, Width, Height), 14));
+        StartChargeAnimIfNeeded();
         Invalidate();
     }
 
@@ -78,6 +103,13 @@ internal sealed class BatteryPopupForm : Form
         }
         Show();
         Activate();
+        StartChargeAnimIfNeeded();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _chargeAnimTimer.Dispose();
+        base.Dispose(disposing);
     }
 
     private Point ClampToAnyScreen(Point p)
@@ -203,6 +235,42 @@ internal sealed class BatteryPopupForm : Form
         g.DrawLine(pen, cx, headRect.Bottom - 1, cx, rect.Bottom);
     }
 
+    /// <summary>A filled bolt shape (the classic "flash" silhouette), scaled to fit <paramref name="rect"/>.
+    /// <paramref name="glowIntensity"/> (0-1) layers a soft halo behind it for the charging flicker —
+    /// 0 draws a plain flat bolt, 1 draws it at full glow.</summary>
+    private static void DrawLightningGlyph(Graphics g, RectangleF rect, Color color, float glowIntensity)
+    {
+        ReadOnlySpan<PointF> shape = stackalloc PointF[]
+        {
+            new(0.62f, 0.00f),
+            new(0.20f, 0.55f),
+            new(0.46f, 0.55f),
+            new(0.38f, 1.00f),
+            new(0.85f, 0.40f),
+            new(0.56f, 0.40f),
+        };
+        var points = new PointF[shape.Length];
+        for (int i = 0; i < shape.Length; i++)
+            points[i] = new PointF(rect.X + shape[i].X * rect.Width, rect.Y + shape[i].Y * rect.Height);
+
+        if (glowIntensity > 0.01f)
+        {
+            using var glowBrush = new SolidBrush(Color.FromArgb((int)(120 * glowIntensity), color));
+            using var m = new Matrix();
+            var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+            float scale = 1f + 0.5f * glowIntensity;
+            m.Translate(center.X, center.Y);
+            m.Scale(scale, scale);
+            m.Translate(-center.X, -center.Y);
+            var glowPoints = (PointF[])points.Clone();
+            m.TransformPoints(glowPoints);
+            g.FillPolygon(glowBrush, glowPoints);
+        }
+
+        using var brush = new SolidBrush(color);
+        g.FillPolygon(brush, points);
+    }
+
     private void DrawCard(Graphics g, RectangleF rect, DeviceManager.DeviceStatus status)
     {
         var level = Theme.LevelColor(status.Reading?.Percent);
@@ -226,10 +294,23 @@ internal sealed class BatteryPopupForm : Form
 
         if (status.Reading?.Charging == true)
         {
-            using var chargeFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
-            using var chargeBrush = new SolidBrush(Theme.AccentViolet);
-            using var sf = new StringFormat { Alignment = StringAlignment.Far };
-            g.DrawString(Strings.PopupCharging, chargeFont, chargeBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
+            // Two overlaid sine waves at slightly clashing frequencies read as an electric flicker
+            // rather than a smooth, predictable breathing pulse — deterministic per-frame (not
+            // random), so it never looks glitchy even redrawn at an irregular interval.
+            float flicker = 0.5f
+                + 0.3f * (float)Math.Sin(_chargePhase * 6.0)
+                + 0.2f * (float)Math.Sin(_chargePhase * 13.7 + 1.3f);
+            flicker = Math.Clamp(flicker, 0.15f, 1f);
+            var boltColor = Color.FromArgb(255, Theme.Electric.R, Theme.Electric.G, Theme.Electric.B);
+
+            using var chargeFont = new Font("Segoe UI Semibold", 7.5f, FontStyle.Bold);
+            using var chargeBrush = new SolidBrush(boltColor);
+            using var sf = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
+            var textRect = new RectangleF(rect.X, rect.Y + 6, rect.Width - 14 - 15, 16);
+            g.DrawString(Strings.PopupCharging, chargeFont, chargeBrush, textRect, sf);
+
+            var boltRect = new RectangleF(rect.Right - 24, rect.Y + 5, 12, 15);
+            DrawLightningGlyph(g, boltRect, boltColor, flicker);
         }
         else if (status.EstimatedTimeRemaining is { } eta)
         {

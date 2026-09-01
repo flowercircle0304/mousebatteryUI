@@ -16,6 +16,11 @@ internal static class Theme
     public static readonly Color AccentCyan = Color.FromArgb(255, 34, 211, 238);
     public static readonly Color AccentViolet = Color.FromArgb(255, 167, 139, 250);
 
+    /// <summary>Charging indicator color — a vivid electric yellow, deliberately distinct from every
+    /// battery-level color so "charging" reads as its own state at a glance, not just a shade of
+    /// LevelHigh/LevelMid.</summary>
+    public static readonly Color Electric = Color.FromArgb(255, 255, 224, 64);
+
     public static readonly Color LevelHigh = Color.FromArgb(255, 57, 255, 176);
     public static readonly Color LevelMid = Color.FromArgb(255, 255, 176, 32);
     public static readonly Color LevelLow = Color.FromArgb(255, 255, 59, 107);
