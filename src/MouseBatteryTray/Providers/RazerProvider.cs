@@ -9,11 +9,11 @@ namespace MouseBatteryTray.Providers;
 /// must match what that exact model expects, so — like COMPX — this needs one entry per product id
 /// rather than matching the whole vendor generically.
 ///
-/// <b>UNVERIFIED</b> — implemented from and cross-checked against two independent sources: the
-/// openrazer kernel driver (github.com/openrazer/openrazer, razermouse_driver.c /
-/// razerchromacommon.c — the actual command bytes and the "Viper V3 Pro" transaction id come
-/// straight from there) and a separate community reimplementation
-/// (github.com/xzeldon/razer-battery-report). Never tested against real Razer hardware.
+/// Implemented from and cross-checked against two independent sources: the openrazer kernel driver
+/// (github.com/openrazer/openrazer, razermouse_driver.c / razerchromacommon.c — the actual command
+/// bytes and the "Viper V3 Pro" transaction id come straight from there) and a separate community
+/// reimplementation (github.com/xzeldon/razer-battery-report). Confirmed working against a real
+/// Viper V3 Pro.
 ///
 /// Wire protocol: a 90-byte command structure sent via HID SetFeature / GetFeature (report id
 /// 0x00, so 91 bytes on the wire): status, transaction_id, remaining_packets(2, BE),
@@ -31,11 +31,32 @@ public sealed class RazerProvider : IMouseBatteryProvider
     private readonly IReadOnlySet<int> _productIds;
     private readonly byte _transactionId;
 
+    /// <summary>Wireless-PID ↔ wired-PID pairs for known models (from openrazer's device header).
+    /// Many Razer mice re-enumerate under the wired PID the instant the charging cable is plugged
+    /// in, so a device registered under only one of the pair looks like it vanished while charging.
+    /// Used to auto-widen matching below even for entries saved before this pairing existed
+    /// (<see cref="AppSettings.DiscoveredDeviceSpec.AdditionalProductIds"/> is the deliberate,
+    /// per-entry version of the same idea — this is just a safety net for what it doesn't cover).</summary>
+    private static readonly IReadOnlyDictionary<int, int> KnownWiredCounterpart = new Dictionary<int, int>
+    {
+        { 0x00C1, 0x00C0 }, { 0x00C0, 0x00C1 }, // Viper V3 Pro
+        { 0x00B7, 0x00B6 }, { 0x00B6, 0x00B7 }, // DeathAdder V3 Pro
+        { 0x00AB, 0x00AA }, { 0x00AA, 0x00AB }, // Basilisk V3 Pro
+        { 0x007B, 0x007A }, { 0x007A, 0x007B }, // Viper Ultimate
+        { 0x007D, 0x007C }, { 0x007C, 0x007D }, // DeathAdder V2 Pro
+    };
+
     public RazerProvider(string id, string displayName, IEnumerable<int> productIds, byte transactionId)
     {
         Id = id;
         DisplayName = displayName;
-        _productIds = productIds.ToHashSet();
+
+        var ids = productIds.ToHashSet();
+        foreach (var pid in ids.ToList())
+        {
+            if (KnownWiredCounterpart.TryGetValue(pid, out var counterpart)) ids.Add(counterpart);
+        }
+        _productIds = ids;
         _transactionId = transactionId;
     }
 
