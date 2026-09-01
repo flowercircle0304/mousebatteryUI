@@ -79,6 +79,20 @@ public static class Strings
     public static string SettingsUnhideLink(int count) => P($"非表示にした {count} 件を再表示する", $"Show {count} hidden device(s) again");
     public static string SettingsSave => P("保存", "Save");
     public static string SettingsCancel => P("キャンセル", "Cancel");
+    public static string SettingsUninstall => P("アンインストール...", "Uninstall...");
+
+    public static string UninstallConfirmTitle => P("アンインストールの確認", "Confirm uninstall");
+    public static string UninstallConfirmText => P(
+        "このアプリをアンインストールします。以下がすべて行われ、元に戻せません。\n\n" +
+        "・Windows起動時の自動起動設定を解除\n" +
+        "・保存されている設定（登録したマウス・しきい値など）をすべて削除\n" +
+        "・アプリ本体（このexeファイル）を削除\n\n" +
+        "続行しますか？",
+        "This will uninstall the app. All of the following happens and cannot be undone:\n\n" +
+        "- Remove the Windows startup (autostart) registration\n" +
+        "- Delete all saved settings (registered mice, thresholds, etc.)\n" +
+        "- Delete the app itself (this .exe file)\n\n" +
+        "Continue?");
 
     public static string ConfirmDeleteCustomTitle => P("削除の確認", "Confirm delete");
     public static string ConfirmDeleteCustomText(string name) => P(

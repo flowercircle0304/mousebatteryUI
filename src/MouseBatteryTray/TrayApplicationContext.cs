@@ -75,7 +75,15 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         _popup.Hide();
         using var form = new SettingsForm(_settings);
-        if (form.ShowDialog() == DialogResult.OK)
+        var result = form.ShowDialog();
+
+        if (form.UninstallRequested)
+        {
+            ExitApp();
+            return;
+        }
+
+        if (result == DialogResult.OK)
         {
             Strings.SetLanguage(_settings.Language);
             _deviceManager.ApplySettings(_settings);

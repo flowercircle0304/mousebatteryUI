@@ -21,6 +21,11 @@ internal sealed class SettingsForm : Form
     private int _deviceSectionTop;
     private int _deviceSectionBottom;
 
+    /// <summary>True once the user has confirmed and triggered <see cref="UninstallHelper.Run"/> —
+    /// the caller must skip its normal "save settings" handling and exit the app entirely instead,
+    /// since the settings folder this dialog would otherwise save to no longer exists.</summary>
+    public bool UninstallRequested { get; private set; }
+
     public SettingsForm(AppSettings settings)
     {
         _settings = settings;
@@ -495,10 +500,40 @@ internal sealed class SettingsForm : Form
         };
         cancelButton.FlatAppearance.BorderColor = Theme.Border;
 
+        var uninstallButton = new Button
+        {
+            Text = Strings.SettingsUninstall,
+            Location = new Point(16, y + 16),
+            Width = 130,
+            Height = 30,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.LevelLow,
+        };
+        uninstallButton.FlatAppearance.BorderColor = Theme.Border;
+        uninstallButton.Click += (_, _) => RunUninstall();
+
         Controls.Add(saveButton);
         Controls.Add(cancelButton);
+        Controls.Add(uninstallButton);
         AcceptButton = saveButton;
         CancelButton = cancelButton;
+    }
+
+    private void RunUninstall()
+    {
+        var confirm = MessageBox.Show(
+            this,
+            Strings.UninstallConfirmText,
+            Strings.UninstallConfirmTitle,
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+        if (confirm != DialogResult.Yes) return;
+
+        UninstallHelper.Run();
+        UninstallRequested = true;
+        DialogResult = DialogResult.Cancel;
+        Close();
     }
 
     private void DeleteDiscoveredDevice(IMouseBatteryProvider provider)
