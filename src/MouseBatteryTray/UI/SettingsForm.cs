@@ -8,7 +8,7 @@ namespace MouseBatteryTray.UI;
 internal sealed class SettingsForm : Form
 {
     private readonly AppSettings _settings;
-    private readonly List<(IMouseBatteryProvider Provider, CheckBox Check, TextBox Path)> _rows = new();
+    private readonly List<(IMouseBatteryProvider Provider, CheckBox Check, TextBox Name, TextBox Path)> _rows = new();
 
     private CheckBox _startupCheck = null!;
     private CheckBox _lowBatteryCheck = null!;
@@ -373,13 +373,14 @@ internal sealed class SettingsForm : Form
                 FlatStyle = FlatStyle.Flat,
             };
 
-            var label = new Label
+            var nameBox = new TextBox
             {
                 Text = provider.DisplayName,
-                Location = new Point(40, y + 6),
+                Location = new Point(40, y + 3),
                 Width = 180,
+                BackColor = Theme.CardBackground,
                 ForeColor = Theme.TextPrimary,
-                AutoEllipsis = true,
+                BorderStyle = BorderStyle.FixedSingle,
             };
 
             var pathBox = new TextBox
@@ -416,7 +417,7 @@ internal sealed class SettingsForm : Form
             };
 
             Controls.Add(check);
-            Controls.Add(label);
+            Controls.Add(nameBox);
             Controls.Add(pathBox);
             Controls.Add(browse);
 
@@ -440,7 +441,7 @@ internal sealed class SettingsForm : Form
             };
             Controls.Add(delete);
 
-            _rows.Add((provider, check, pathBox));
+            _rows.Add((provider, check, nameBox, pathBox));
             y += 40;
         }
 
@@ -577,11 +578,18 @@ internal sealed class SettingsForm : Form
         _settings.FullChargeNotificationsEnabled = _fullChargeCheck.Checked;
         _settings.FullChargeThreshold = (int)_fullChargeThresholdInput.Value;
 
-        foreach (var (provider, check, path) in _rows)
+        foreach (var (provider, check, name, path) in _rows)
         {
             var setting = _settings.GetOrCreate(provider.Id);
             setting.Enabled = check.Checked;
             setting.CompanionPath = path.Text.Trim();
+
+            var trimmedName = name.Text.Trim();
+            if (trimmedName.Length > 0)
+            {
+                var spec = _settings.DiscoveredDevices.FirstOrDefault(d => d.Id == provider.Id);
+                if (spec is not null) spec.DisplayName = trimmedName;
+            }
         }
         _settings.Save();
     }

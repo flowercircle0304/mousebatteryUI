@@ -36,6 +36,10 @@ static class Program
     {
         var settings = new AppSettings();
         settings.GetOrCreate("atk-compx").CompanionPath = @"C:\Program Files\Vendor App\VendorApp.exe";
+        settings.DiscoveredDevices.Add(new DiscoveredDeviceSpec
+        {
+            Kind = "compx", Id = "atk-compx", DisplayName = "Sample Mouse A", VendorId = 0x1, ProductId = 0x1,
+        });
 
         using var popup = new BatteryPopupForm(settings);
         var _ = popup.Handle; // force native handle creation so DrawToBitmap works
@@ -76,13 +80,11 @@ static class Program
 
         using var settingsForm = new SettingsForm(settings);
         settingsForm.StartPosition = FormStartPosition.Manual;
-        settingsForm.Location = new Point(0, 0);
+        settingsForm.Location = new Point(-3000, -3000); // off-screen: avoids real-window z-order issues while still forcing a real Show()
         settingsForm.Show();
         for (int i = 0; i < 10; i++) { Application.DoEvents(); System.Threading.Thread.Sleep(50); }
-        var screenRect = settingsForm.Bounds;
-        using var settingsBmp = new Bitmap(screenRect.Width, screenRect.Height);
-        using (var sg2 = Graphics.FromImage(settingsBmp))
-            sg2.CopyFromScreen(screenRect.Location, Point.Empty, screenRect.Size);
+        using var settingsBmp = new Bitmap(settingsForm.Width, settingsForm.Height);
+        settingsForm.DrawToBitmap(settingsBmp, new Rectangle(0, 0, settingsForm.Width, settingsForm.Height));
         settingsForm.Hide();
         string settingsPath = Path.Combine(dir, "settings_snapshot.png");
         settingsBmp.Save(settingsPath, System.Drawing.Imaging.ImageFormat.Png);
