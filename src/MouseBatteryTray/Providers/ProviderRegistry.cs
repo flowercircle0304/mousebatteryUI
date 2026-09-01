@@ -36,7 +36,17 @@ public static class ProviderRegistry
             IMouseBatteryProvider? provider = d.Kind switch
             {
                 "passive-push" => new PassivePushHidProvider(d.Id, d.DisplayName, d.VendorId, d.ProductId, d.ReportLength, d.BatteryByteOffset),
-                "compx" => new CompxDongleProvider(d.Id, d.DisplayName, d.VendorId, new[] { d.ProductId }, (byte)d.OutputReportId, (byte)d.CommandId),
+                "passive-feature" => new PassiveFeatureHidProvider(d.Id, d.DisplayName, d.VendorId, d.ProductId, d.ReportLength, d.BatteryByteOffset),
+                // ReportLength <= 0 means this entry predates per-device report length/offset (the
+                // wizard's active probe used to always assume ATK's exact 17/6 layout) — keep that
+                // as the fallback so devices saved before this change keep working unmodified.
+                "compx" => new CompxDongleProvider(
+                    d.Id, d.DisplayName, d.VendorId, new[] { d.ProductId },
+                    (byte)d.OutputReportId, (byte)d.CommandId,
+                    reportLength: d.ReportLength > 0 ? d.ReportLength : 17,
+                    percentByteOffset: d.ReportLength > 0 ? d.BatteryByteOffset : 6,
+                    chargingByteOffset: d.ChargingByteOffset,
+                    voltageByteOffset: d.VoltageByteOffset),
                 "logitech-hidpp" => new LogitechHidPpProvider(d.DisplayName),
                 "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }, (byte)d.RazerTransactionId),
                 _ => null,

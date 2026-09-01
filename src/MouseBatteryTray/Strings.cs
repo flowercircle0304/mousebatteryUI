@@ -143,7 +143,12 @@ public static class Strings
         "マウスを軽く動かすかクリックすると受信間隔が早まることがあります。",
         "Moving or clicking the mouse can make it report sooner.");
     public static string WizardPassiveNotFound => P("受信待ちスキャンでは見つかりませんでした。", "Not found via passive scan.");
+    public static string WizardTryingFeatureScan => P("Featureレポートの読み取りも試します（安全・書き込みなし）...", "Also trying a feature-report read (safe, no writes)...");
     public static string WizardFoundPassive => P("✓ 見つかりました（受信待ち方式）", "✓ Found it (passive push)");
+    public static string WizardFoundPassiveFeature => P("✓ 見つかりました（Featureレポート方式）", "✓ Found it (feature report)");
+    public static string WizardPassiveFeatureNotFound => P(
+        "受信待ち・Featureレポートのどちらでも見つかりませんでした。",
+        "Not found via either passive method (input reports or feature reports).");
     public static string WizardActiveScanHeader(string device, int target) => P($"[アクティブ探索] {device} / 目標値 {target}%", $"[Active probe] {device} / target {target}%");
     public static string WizardActiveWakeHint => P(
         "マウスがスリープ状態だと応答しないことがあります。軽く動かしてから実行してください。",
@@ -161,8 +166,14 @@ public static class Strings
     public static string DiscoveryNoResponse(int reportLen) => P($"受信レポート長{reportLen}: 応答なし（スキップ）", $"Report length {reportLen}: no response (skipped)");
     public static string DiscoveryPassiveMatch(int reportLen, int offset) => P($"一致しました: 受信レポート長{reportLen} / オフセット{offset}", $"Match found: report length {reportLen} / offset {offset}");
     public static string DiscoveryNoMatch(int reportLen, int samples) => P($"受信レポート長{reportLen}: {samples}件受信、一致バイトなし", $"Report length {reportLen}: {samples} sample(s) received, no matching byte");
-    public static string DiscoveryNoCompxCollection => P("COMPX形式（17バイト入出力）のコレクションが見つかりません", "No COMPX-shaped (17-byte in/out) collection found");
-    public static string DiscoveryActiveMatch => P("一致しました: COMPX方式（ReportId=8, commandId=4, オフセット6）", "Match found: COMPX protocol (ReportId=8, commandId=4, offset=6)");
+    public static string DiscoveryNoCompxCollection => P(
+        "COMPX形式（入出力が同じ長さのレポート、8〜64バイト）のコレクションが見つかりません",
+        "No COMPX-shaped collection found (symmetric in/out report, 8-64 bytes)");
+    public static string DiscoveryActiveMatch(int reportLen, int offset) => P($"一致しました: COMPX方式（レポート長{reportLen} / オフセット{offset}）", $"Match found: COMPX protocol (report length {reportLen} / offset {offset})");
     public static string DiscoveryActiveNoMatch => P("応答はありましたが値が一致しませんでした", "Got a response but the value didn't match");
     public static string DiscoveryError(string kind) => P($"エラー: {kind}", $"Error: {kind}");
+    public static string DiscoveryFeatureOpenFailed(int reportLen) => P($"Featureレポート長{reportLen}: オープンに失敗（スキップ）", $"Feature report length {reportLen}: failed to open (skipped)");
+    public static string DiscoveryFeatureNoResponse(int reportLen) => P($"Featureレポート長{reportLen}: 応答なし（スキップ）", $"Feature report length {reportLen}: no response (skipped)");
+    public static string DiscoveryFeatureMatch(int reportLen, int offset) => P($"一致しました: Featureレポート長{reportLen} / オフセット{offset}", $"Match found: feature report length {reportLen} / offset {offset}");
+    public static string DiscoveryFeatureNoMatch(int reportLen, int samples) => P($"Featureレポート長{reportLen}: {samples}件取得、一致バイトなし", $"Feature report length {reportLen}: {samples} sample(s), no matching byte");
 }

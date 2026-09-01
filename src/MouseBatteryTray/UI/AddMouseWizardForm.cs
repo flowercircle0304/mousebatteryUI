@@ -21,6 +21,7 @@ internal sealed class AddMouseWizardForm : Form
 
     private IReadOnlyList<DeviceDiscovery.UnrecognizedDevice> _devices = Array.Empty<DeviceDiscovery.UnrecognizedDevice>();
     private DeviceDiscovery.PassiveMatch? _passiveMatch;
+    private string _passiveMatchKind = "passive-push";
     private DeviceDiscovery.ActiveMatch? _activeMatch;
     private CancellationTokenSource? _scanCts;
 
@@ -247,6 +248,15 @@ internal sealed class AddMouseWizardForm : Form
         Task.Run(() =>
         {
             var match = DeviceDiscovery.TryPassiveMatch(device.VendorId, device.ProductId, target, AppendLog, ct);
+            string kind = "passive-push";
+
+            if (match is null && !ct.IsCancellationRequested)
+            {
+                AppendLog(Strings.WizardPassiveNotFound);
+                AppendLog(Strings.WizardTryingFeatureScan);
+                match = DeviceDiscovery.TryPassiveFeatureMatch(device.VendorId, device.ProductId, target, AppendLog);
+                kind = "passive-feature";
+            }
 
             BeginInvoke(() =>
             {
@@ -254,16 +264,17 @@ internal sealed class AddMouseWizardForm : Form
                 if (match is not null)
                 {
                     _passiveMatch = match;
+                    _passiveMatchKind = kind;
                     _activeMatch = null;
                     _resultLabel.ForeColor = Theme.LevelHigh;
-                    _resultLabel.Text = Strings.WizardFoundPassive;
+                    _resultLabel.Text = kind == "passive-feature" ? Strings.WizardFoundPassiveFeature : Strings.WizardFoundPassive;
                     _nameInput.Text = device.DisplayName;
                     _nameInput.Enabled = true;
                     _saveButton.Enabled = true;
                 }
                 else
                 {
-                    AppendLog(Strings.WizardPassiveNotFound);
+                    AppendLog(Strings.WizardPassiveFeatureNotFound);
                     _activeScanButton.Enabled = true;
                 }
             });
@@ -331,7 +342,7 @@ internal sealed class AddMouseWizardForm : Form
 
         if (_passiveMatch is { } pm)
         {
-            spec.Kind = "passive-push";
+            spec.Kind = _passiveMatchKind;
             spec.ReportLength = pm.ReportLength;
             spec.BatteryByteOffset = pm.ByteOffset;
         }
@@ -340,6 +351,8 @@ internal sealed class AddMouseWizardForm : Form
             spec.Kind = "compx";
             spec.OutputReportId = am.OutputReportId;
             spec.CommandId = am.CommandId;
+            spec.ReportLength = am.ReportLength;
+            spec.BatteryByteOffset = am.ByteOffset;
         }
         else
         {

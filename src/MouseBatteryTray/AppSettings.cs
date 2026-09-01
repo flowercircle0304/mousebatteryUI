@@ -42,6 +42,12 @@ public sealed class DiscoveredDeviceSpec
 
     // razer
     public int RazerTransactionId { get; set; } = 0x1F;
+
+    // compx (optional — a wizard-discovered device leaves these null, and CompxDongleProvider
+    // falls back to positions relative to BatteryByteOffset, mirroring the one confirmed COMPX
+    // layout's struct order: percent, then charging, then a 2-byte voltage)
+    public int? ChargingByteOffset { get; set; }
+    public int? VoltageByteOffset { get; set; }
 }
 
 public sealed class AppSettings

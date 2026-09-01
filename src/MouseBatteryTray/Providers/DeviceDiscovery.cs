@@ -7,6 +7,14 @@ namespace MouseBatteryTray.Providers;
 /// compare raw bytes against a percentage the user typed in after checking the vendor's own app
 /// (or the mouse's physical indicator). This is exactly the technique used to reverse engineer the
 /// FURYCUBE and ATK protocols during this project's own development, automated.
+///
+/// Three independent techniques, tried cheapest/safest first: <see cref="TryPassiveMatch"/> (listen
+/// for unsolicited Input reports), <see cref="TryPassiveFeatureMatch"/> (poll Feature reports —
+/// still read-only, no protocol assumed), then <see cref="TryActiveCompxMatch"/> (send the one
+/// known-safe COMPX read command and see what comes back). None of them assume a device matches any
+/// previously-seen dongle's exact report length or byte layout — every offset/length that could
+/// plausibly hold the answer gets scanned, so this isn't limited to exact clones of a device this
+/// project has already reverse-engineered.
 /// </summary>
 public static class DeviceDiscovery
 {
@@ -71,9 +79,12 @@ public static class DeviceDiscovery
                     continue;
                 }
 
+                // Tolerate one stray sample out of 3+ (e.g. a non-battery report that happened to
+                // interleave on the same collection) instead of demanding every single sample agree.
+                int required = samples.Count <= 2 ? samples.Count : samples.Count - 1;
                 for (int offset = 0; offset < inLen; offset++)
                 {
-                    if (samples.All(s => s[offset] == (byte)targetPercent))
+                    if (samples.Count(s => s[offset] == (byte)targetPercent) >= required)
                     {
                         log?.Invoke("  " + Strings.DiscoveryPassiveMatch(inLen, offset));
                         return new PassiveMatch(inLen, offset);
@@ -85,31 +96,88 @@ public static class DeviceDiscovery
         return null;
     }
 
-    public sealed record ActiveMatch(byte OutputReportId, byte CommandId, int ByteOffset);
+    /// <summary>Zero-risk: only reads (HidD_GetFeature), never writes. Some simpler dongle firmwares
+    /// keep battery% sitting in a Feature report with no request/handshake needed at all — this
+    /// checks for that directly, independent of any particular protocol family, so it can pick up
+    /// devices this app has no specific driver for yet. Uses <see cref="RawHidFeatureIo"/> rather
+    /// than HidSharp's own Open(), since the target collection is very often the mouse's own primary
+    /// usage, which Windows blocks from full read/write access.</summary>
+    public static PassiveMatch? TryPassiveFeatureMatch(int vendorId, int productId, int targetPercent, Action<string>? log)
+    {
+        var collections = DeviceList.Local.GetHidDevices()
+            .Where(d => d.VendorID == vendorId && d.ProductID == productId)
+            .ToList();
+
+        foreach (var dev in collections)
+        {
+            int featLen = dev.GetMaxFeatureReportLength();
+            if (featLen < 2 || featLen > 64) continue;
+
+            var handle = RawHidFeatureIo.Open(dev.DevicePath);
+            if (handle is null)
+            {
+                log?.Invoke("  " + Strings.DiscoveryFeatureOpenFailed(featLen));
+                continue;
+            }
+
+            using (handle)
+            {
+                var samples = new List<byte[]>();
+                for (int i = 0; i < 3; i++)
+                {
+                    var buf = new byte[featLen];
+                    if (RawHidFeatureIo.GetFeature(handle, buf)) samples.Add(buf);
+                    Thread.Sleep(200);
+                }
+
+                if (samples.Count == 0)
+                {
+                    log?.Invoke("  " + Strings.DiscoveryFeatureNoResponse(featLen));
+                    continue;
+                }
+
+                for (int offset = 0; offset < featLen; offset++)
+                {
+                    if (samples.All(s => s[offset] == (byte)targetPercent))
+                    {
+                        log?.Invoke("  " + Strings.DiscoveryFeatureMatch(featLen, offset));
+                        return new PassiveMatch(featLen, offset);
+                    }
+                }
+                log?.Invoke("  " + Strings.DiscoveryFeatureNoMatch(featLen, samples.Count));
+            }
+        }
+        return null;
+    }
+
+    public sealed record ActiveMatch(int ReportLength, byte OutputReportId, byte CommandId, int ByteOffset);
 
     /// <summary>Sends exactly one already-validated "GetBatteryLevel"-shaped COMPX request
-    /// (ReportId=8, commandId=4, checksum) and checks whether the response's byte[6] matches
-    /// <paramref name="targetPercent"/>. Only tried against collections whose report lengths exactly
-    /// match the COMPX shape (17-byte in/out), and only this one specific, already-proven-safe
-    /// command is sent — no brute-forcing of unknown command ids.</summary>
+    /// (ReportId=8, commandId=4, checksum) to every collection whose input/output reports are the
+    /// same length (the COMPX header+checksum shape, regardless of exact size — not hardcoded to
+    /// ATK's own 17 bytes), then scans the whole response for a byte matching
+    /// <paramref name="targetPercent"/> instead of assuming ATK's own offset. Only this one specific,
+    /// already-proven-safe read command is ever sent — no brute-forcing of unknown command ids.</summary>
     public static ActiveMatch? TryActiveCompxMatch(int vendorId, int productId, int targetPercent, Action<string>? log)
     {
         const byte outputReportId = 8;
         const byte commandId = 4;
 
-        var collections = DeviceList.Local.GetHidDevices()
+        var candidates = DeviceList.Local.GetHidDevices()
             .Where(d => d.VendorID == vendorId && d.ProductID == productId
-                && d.GetMaxOutputReportLength() == 17 && d.GetMaxInputReportLength() == 17)
+                && d.GetMaxOutputReportLength() == d.GetMaxInputReportLength()
+                && d.GetMaxOutputReportLength() is >= 8 and <= 64)
             .ToList();
 
-        if (collections.Count == 0)
+        if (candidates.Count == 0)
         {
             log?.Invoke("  " + Strings.DiscoveryNoCompxCollection);
             return null;
         }
 
-        foreach (var dev in collections)
+        foreach (var dev in candidates)
         {
+            int len = dev.GetMaxOutputReportLength();
             if (!dev.TryOpen(out var stream)) continue;
 
             using (stream)
@@ -118,21 +186,35 @@ public static class DeviceDiscovery
                 stream.WriteTimeout = 1000;
                 try
                 {
-                    var outBuf = new byte[17];
+                    var outBuf = new byte[len];
                     outBuf[0] = outputReportId;
                     outBuf[1] = commandId;
                     int sum = outputReportId + outBuf[1];
-                    outBuf[16] = unchecked((byte)(85 - sum));
+                    outBuf[len - 1] = unchecked((byte)(85 - sum));
                     stream.Write(outBuf);
 
-                    var inBuf = new byte[17];
+                    var samples = new List<byte[]>();
                     for (int attempt = 0; attempt < 3; attempt++)
                     {
+                        var inBuf = new byte[len];
                         int n = stream.Read(inBuf);
-                        if (n >= 10 && inBuf[1] == commandId && inBuf[6] == (byte)targetPercent)
+                        if (n >= 3 && inBuf[1] == commandId) samples.Add(inBuf);
+                    }
+
+                    if (samples.Count == 0)
+                    {
+                        log?.Invoke("  " + Strings.DiscoveryActiveNoMatch);
+                        continue;
+                    }
+
+                    // Skip the echoed header (reportId, commandId) and the checksum trailer — a
+                    // real percentage landing there would be coincidence, not signal.
+                    for (int offset = 2; offset < len - 1; offset++)
+                    {
+                        if (samples.All(s => s[offset] == (byte)targetPercent))
                         {
-                            log?.Invoke("  " + Strings.DiscoveryActiveMatch);
-                            return new ActiveMatch(outputReportId, commandId, 6);
+                            log?.Invoke("  " + Strings.DiscoveryActiveMatch(len, offset));
+                            return new ActiveMatch(len, outputReportId, commandId, offset);
                         }
                     }
                     log?.Invoke("  " + Strings.DiscoveryActiveNoMatch);
