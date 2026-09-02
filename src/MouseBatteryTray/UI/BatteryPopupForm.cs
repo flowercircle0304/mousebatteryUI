@@ -407,27 +407,27 @@ internal sealed class BatteryPopupForm : Form
         }
         else
         {
+            // Number directly above one long, full-width gauge — the single-value equivalent of the
+            // "value paired with its own gauge" layout above, instead of number-left/gauge-right.
             string pctText = status.Reading is null ? "--" : status.Reading.Percent.ToString();
-            using var pctFont = new Font("Segoe UI Semibold", 18f, FontStyle.Bold);
+            using var pctFont = new Font("Segoe UI Semibold", 16f, FontStyle.Bold);
             using var pctBrush = new SolidBrush(level);
-            g.DrawString(pctText, pctFont, pctBrush, textX - 1, rect.Y + 21);
+            g.DrawString(pctText, pctFont, pctBrush, textX - 1, rect.Y + 16);
 
             float pctWidth = g.MeasureString(pctText, pctFont).Width;
             if (status.Reading is not null)
             {
                 using var unitFont = new Font("Segoe UI", 9f, FontStyle.Regular);
                 using var unitBrush = new SolidBrush(Theme.TextMuted);
-                g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 30);
+                g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 24);
             }
 
-            // Mini battery gauge on the right.
-            float gaugeW = 64;
-            float gaugeH = 10;
-            var gaugeRect = new RectangleF(rect.Right - gaugeW - 14, rect.Y + (rect.Height - gaugeH) / 2f, gaugeW, gaugeH);
+            float gaugeH = 9;
+            var gaugeRect = new RectangleF(textX, rect.Y + 40, rect.Right - 14 - textX, gaugeH);
             Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
             if (status.Reading is { } reading)
             {
-                float innerPad = 2f;
+                float innerPad = 1.5f;
                 var innerRect = new RectangleF(gaugeRect.X + innerPad, gaugeRect.Y + innerPad, gaugeRect.Width - innerPad * 2, gaugeRect.Height - innerPad * 2);
                 float fillW = innerRect.Width * Math.Clamp(reading.Percent, 0, 100) / 100f;
                 if (fillW > 1)
