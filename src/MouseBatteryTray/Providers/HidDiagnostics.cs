@@ -47,7 +47,7 @@ public static class HidDiagnostics
         sb.AppendLine("(見つかった場合、これらのソフトがデバイスを排他的に掴んでいて読み取りを妨げていることがあります。可能なら終了してから再試行してください)");
         sb.AppendLine();
 
-        string[] keywords = { "razer", "synapse", "logi", "ghub", "g hub", "atk", "furycube", "corsair", "icue", "steelseries", "roccat" };
+        string[] keywords = { "razer", "synapse", "logi", "ghub", "g hub", "atk", "furycube", "corsair", "icue", "steelseries", "roccat", "sprime", "pm1", "inzone", "sony" };
         var suspicious = System.Diagnostics.Process.GetProcesses()
             .Where(p => keywords.Any(k => p.ProcessName.Contains(k, StringComparison.OrdinalIgnoreCase)))
             .Select(p => p.ProcessName)
