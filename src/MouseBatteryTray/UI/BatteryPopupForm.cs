@@ -320,17 +320,42 @@ internal sealed class BatteryPopupForm : Form
             g.DrawString(Strings.PopupEtaPrefix + FormatEta(eta), etaFont, etaBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
         }
 
-        string pctText = status.Reading is null ? "--" : status.Reading.Percent.ToString();
-        using var pctFont = new Font("Segoe UI Semibold", 18f, FontStyle.Bold);
-        using var pctBrush = new SolidBrush(level);
-        g.DrawString(pctText, pctFont, pctBrush, textX - 1, rect.Y + 21);
-
-        float pctWidth = g.MeasureString(pctText, pctFont).Width;
-        if (status.Reading is not null)
+        if (status.Reading?.SubReadings is { Count: > 0 } subReadings)
         {
-            using var unitFont = new Font("Segoe UI", 9f, FontStyle.Regular);
-            using var unitBrush = new SolidBrush(Theme.TextMuted);
-            g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 30);
+            // A device that's really more than one physical battery (e.g. a pair of earbuds) — each
+            // sub-reading gets its own short label and its own level color, so a listener that's
+            // fine doesn't visually hide one that's actually running low.
+            using var subLabelFont = new Font("Segoe UI", 8f, FontStyle.Regular);
+            using var subPctFont = new Font("Segoe UI Semibold", 15f, FontStyle.Bold);
+            using var subLabelBrush = new SolidBrush(Theme.TextMuted);
+            float subX = textX;
+            foreach (var (subLabel, subPercent) in subReadings)
+            {
+                g.DrawString(subLabel, subLabelFont, subLabelBrush, subX, rect.Y + 27);
+                float labelW = g.MeasureString(subLabel, subLabelFont).Width;
+
+                string subText = subPercent.ToString();
+                using var subPctBrush = new SolidBrush(Theme.LevelColor(subPercent));
+                g.DrawString(subText, subPctFont, subPctBrush, subX + labelW + 2, rect.Y + 21);
+                float pctW = g.MeasureString(subText, subPctFont).Width;
+
+                subX += labelW + pctW + 16;
+            }
+        }
+        else
+        {
+            string pctText = status.Reading is null ? "--" : status.Reading.Percent.ToString();
+            using var pctFont = new Font("Segoe UI Semibold", 18f, FontStyle.Bold);
+            using var pctBrush = new SolidBrush(level);
+            g.DrawString(pctText, pctFont, pctBrush, textX - 1, rect.Y + 21);
+
+            float pctWidth = g.MeasureString(pctText, pctFont).Width;
+            if (status.Reading is not null)
+            {
+                using var unitFont = new Font("Segoe UI", 9f, FontStyle.Regular);
+                using var unitBrush = new SolidBrush(Theme.TextMuted);
+                g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 30);
+            }
         }
 
         // Mini battery gauge on the right.

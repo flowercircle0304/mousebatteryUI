@@ -14,9 +14,11 @@ namespace MouseBatteryTray.Providers;
 ///
 /// Wire protocol: the dongle pushes unsolicited 64-byte Input reports of several different kinds;
 /// only the one identified by byte[1]=0x12, byte[2]=0x04 carries battery data. Within that report:
-/// byte[14]=right earbud % (0-100 direct), byte[16]=left earbud %, byte[18]=charging case %.
-/// Reported level is the lower of the two earbuds — matching HeadsetControl's own choice, since
-/// that's the one that actually limits how much longer they can be used.
+/// byte[14]=right earbud % (0-100 direct), byte[16]=left earbud %, byte[18]=charging case %
+/// (case not currently surfaced). <see cref="BatteryReading.Percent"/> is the lower of the two
+/// earbuds — matching HeadsetControl's own choice, since that's the one that actually limits how
+/// much longer they can be used — while <see cref="BatteryReading.SubReadings"/> carries both L and
+/// R individually so the popup can show them side by side.
 /// </summary>
 public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
 {
@@ -83,10 +85,10 @@ public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
 
                     if (n > LeftEarbudOffset && buf[1] == BatteryReportType && buf[2] == BatteryReportSubtype)
                     {
-                        int right = buf[RightEarbudOffset];
-                        int left = buf[LeftEarbudOffset];
-                        int percent = Math.Clamp(Math.Min(left, right), 0, 100);
-                        return BatteryReading.OfPercent(percent);
+                        int right = Math.Clamp((int)buf[RightEarbudOffset], 0, 100);
+                        int left = Math.Clamp((int)buf[LeftEarbudOffset], 0, 100);
+                        int worst = Math.Min(left, right);
+                        return new BatteryReading(worst, null, null, new[] { ("L", left), ("R", right) });
                     }
                 }
                 return null;
