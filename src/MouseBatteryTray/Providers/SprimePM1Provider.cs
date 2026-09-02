@@ -54,7 +54,24 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
     {
         var target = collections.FirstOrDefault(d => d.GetMaxFeatureReportLength() == CollectionFeatureLength);
         if (target is null) return $"Feat={CollectionFeatureLength}のコレクションが見つかりません";
-        if (!target.TryOpen(out var stream)) return "コレクションのオープンに失敗しました";
+
+        // The collection's overall max (704) is just the largest of possibly several distinct
+        // Feature report ids it multiplexes — report id 5's own declared length could be anything.
+        // Guessing that length (32? 704? something else?) is how the last two attempts both failed;
+        // reading it straight from the parsed report descriptor removes the guesswork entirely.
+        string reportList;
+        try
+        {
+            var descriptor = target.GetReportDescriptor();
+            reportList = string.Join(", ", descriptor.FeatureReports.Select(r => $"id={r.ReportID} len={r.Length}"));
+            if (string.IsNullOrEmpty(reportList)) reportList = "(Featureレポートなし)";
+        }
+        catch (Exception ex)
+        {
+            reportList = $"取得失敗: {ex.GetType().Name}: {ex.Message}";
+        }
+
+        if (!target.TryOpen(out var stream)) return $"Featureレポート一覧: [{reportList}] / コレクションのオープンに失敗しました";
 
         using (stream)
         {
@@ -69,7 +86,7 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
             }
             catch (Exception ex)
             {
-                return $"送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / SetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+                return $"Featureレポート一覧: [{reportList}] / 送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / SetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
             }
 
             Thread.Sleep(90);
@@ -81,10 +98,10 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
             }
             catch (Exception ex)
             {
-                return $"送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / GetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+                return $"Featureレポート一覧: [{reportList}] / 送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / GetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
             }
 
-            return $"送信: {BitConverter.ToString(request, 0, 16)}... / 受信: {BitConverter.ToString(response, 0, 16)}...（先頭16バイト、全{response.Length}バイト）";
+            return $"Featureレポート一覧: [{reportList}] / 送信: {BitConverter.ToString(request, 0, 16)}... / 受信: {BitConverter.ToString(response, 0, 16)}...（先頭16バイト、全{response.Length}バイト）";
         }
     }
 
