@@ -111,7 +111,10 @@ public static class DeviceDiscovery
         foreach (var dev in collections)
         {
             int featLen = dev.GetMaxFeatureReportLength();
-            if (featLen < 2 || featLen > 64) continue;
+            // Some vendors' configuration channel (DPI/buttons/RGB/battery all sharing one big
+            // feature report) run to several hundred bytes — a cap tuned for small dongle reports
+            // would silently skip exactly the collection most likely to hold a battery byte.
+            if (featLen < 2 || featLen > 2048) continue;
 
             var handle = RawHidFeatureIo.Open(dev.DevicePath);
             if (handle is null)

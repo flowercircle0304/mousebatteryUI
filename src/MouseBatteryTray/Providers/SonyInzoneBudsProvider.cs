@@ -50,10 +50,26 @@ public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
         return new Session(DisplayName, stream);
     }
 
+    /// <summary>
+    /// Unlike every other provider here, this one can't just read a few times per poll tick and
+    /// give up — HeadsetControl's own budget for the same report is up to 45 attempts at a 5-second
+    /// timeout each (up to ~4 minutes worst case), which means this battery report is genuinely
+    /// infrequent, not "usually there within a couple of seconds" like FURYCUBE's push or ATK's
+    /// command/response. A bounded per-poll read (what this originally did) can go many poll cycles
+    /// — potentially forever — without ever landing inside the report's actual push interval.
+    ///
+    /// So instead: a dedicated background thread blocks on <c>HidStream.Read</c> continuously for as
+    /// long as the session is open, and caches the last qualifying report whenever one arrives.
+    /// <see cref="GetLatest"/> just returns that cache immediately — decoupling "how long until the
+    /// device happens to push a battery report" from DeviceManager's poll cadence entirely.
+    /// </summary>
     private sealed class Session : IBatteryDeviceSession
     {
         private readonly HidStream _stream;
+        private readonly Thread _listenThread;
         private readonly object _lock = new();
+        private volatile bool _disposed;
+        private BatteryReading? _lastReading;
 
         public string DeviceLabel { get; }
 
@@ -61,40 +77,54 @@ public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
         {
             DeviceLabel = label;
             _stream = stream;
-            _stream.ReadTimeout = 800;
+            // Short enough that Dispose()'s _disposed flag is noticed promptly, long enough that
+            // the loop isn't churning through pointless timeout exceptions while it waits.
+            _stream.ReadTimeout = 3000;
+
+            _listenThread = new Thread(ListenLoop) { IsBackground = true, Name = "SonyInzoneBudsListener" };
+            _listenThread.Start();
+        }
+
+        private void ListenLoop()
+        {
+            var buf = new byte[ReportLength];
+            while (!_disposed)
+            {
+                int n;
+                try
+                {
+                    n = _stream.Read(buf);
+                }
+                catch (TimeoutException)
+                {
+                    continue;
+                }
+                catch
+                {
+                    return; // stream closed/disposed out from under us — nothing left to listen to
+                }
+
+                if (n > LeftEarbudOffset && buf[1] == BatteryReportType && buf[2] == BatteryReportSubtype)
+                {
+                    int right = Math.Clamp((int)buf[RightEarbudOffset], 0, 100);
+                    int left = Math.Clamp((int)buf[LeftEarbudOffset], 0, 100);
+                    int worst = Math.Min(left, right);
+                    var reading = new BatteryReading(worst, null, null, new[] { ("L", left), ("R", right) });
+                    lock (_lock) { _lastReading = reading; }
+                }
+            }
         }
 
         public BatteryReading? GetLatest()
         {
-            lock (_lock)
-            {
-                var buf = new byte[ReportLength];
-
-                // The battery report is just one of several kinds the dongle pushes, so several
-                // quick reads may land on an unrelated report first. Bounded to a few seconds worst
-                // case (unlike HeadsetControl's own one-shot-CLI budget of up to 45 * 5s) since this
-                // runs inside a background poll loop shared with every other device — if the battery
-                // report doesn't show up in this window, the next poll tick a few seconds later
-                // tries again.
-                for (int attempt = 0; attempt < 6; attempt++)
-                {
-                    int n;
-                    try { n = _stream.Read(buf); }
-                    catch (TimeoutException) { continue; }
-                    catch { return null; }
-
-                    if (n > LeftEarbudOffset && buf[1] == BatteryReportType && buf[2] == BatteryReportSubtype)
-                    {
-                        int right = Math.Clamp((int)buf[RightEarbudOffset], 0, 100);
-                        int left = Math.Clamp((int)buf[LeftEarbudOffset], 0, 100);
-                        int worst = Math.Min(left, right);
-                        return new BatteryReading(worst, null, null, new[] { ("L", left), ("R", right) });
-                    }
-                }
-                return null;
-            }
+            lock (_lock) return _lastReading;
         }
 
-        public void Dispose() => _stream.Dispose();
+        public void Dispose()
+        {
+            _disposed = true;
+            _stream.Dispose();
+            _listenThread.Join(TimeSpan.FromSeconds(2));
+        }
     }
 }
