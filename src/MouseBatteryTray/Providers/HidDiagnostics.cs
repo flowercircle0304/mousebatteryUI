@@ -89,7 +89,10 @@ public static class HidDiagnostics
                 // ported from a vendor source rather than reverse-engineered from real hardware
                 // here, that's exactly the detail needed to tell "wrong offset" apart from "wrong
                 // request shape" apart from "device rejected it outright".
-                if (reading is null && provider is SprimePM1Provider)
+                // Shown regardless of success — a "successful" read can still be wrong (e.g. an
+                // offset landing on a genuinely-zero byte reads as a plausible-looking 0%), and the
+                // raw bytes are what let that be told apart from an actually-empty response.
+                if (provider is SprimePM1Provider)
                     sb.AppendLine($"        デバッグ（生の送受信バイト列）: {SprimePM1Provider.DebugRawExchange(g.ToList())}");
             }
         }
