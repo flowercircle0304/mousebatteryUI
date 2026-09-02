@@ -94,8 +94,10 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         // Settings opens on top of the popup (hiding it first, above), so closing it — whether
         // saved or cancelled — should bring the popup back rather than leaving the user looking at
-        // nothing but the tray, as if the whole app had been minimized away.
-        _popup.ShowNear(Cursor.Position);
+        // nothing but the tray, as if the whole app had been minimized away. ShowAgain (not
+        // ShowNear) so it reappears exactly where it was, not wherever the cursor happens to be
+        // now (e.g. over Settings' centered Save button).
+        _popup.ShowAgain();
     }
 
     private void LaunchCompanionApp(string providerId)

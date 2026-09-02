@@ -106,6 +106,17 @@ internal sealed class BatteryPopupForm : Form
         StartChargeAnimIfNeeded();
     }
 
+    /// <summary>Re-shows the popup exactly where it already was (Hide() doesn't touch Location) —
+    /// unlike <see cref="ShowNear"/>, which recomputes a position from a given screen point and
+    /// would otherwise put it wherever the cursor happens to be, e.g. over Settings' centered Save
+    /// button, instead of back where the user actually had it.</summary>
+    public void ShowAgain()
+    {
+        Show();
+        Activate();
+        StartChargeAnimIfNeeded();
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing) _chargeAnimTimer.Dispose();
