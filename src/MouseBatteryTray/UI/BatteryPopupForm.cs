@@ -14,10 +14,6 @@ internal sealed class BatteryPopupForm : Form
     private const int PopupWidth = 300;
     private const int Pad = 14;
     private const int CardHeight = 66;
-    // A multi-value device (e.g. L/R earbuds) stacks its numbers vertically to match the stacked
-    // gauges instead of cramming them side by side — that needs more vertical room than a single
-    // number does.
-    private const int MultiReadingCardHeight = 88;
     private const int CardGap = 8;
     private const int HeaderHeight = 46;
     private const int FooterHeight = 40;
@@ -82,16 +78,11 @@ internal sealed class BatteryPopupForm : Form
         if (Visible && AnyCharging() && !_chargeAnimTimer.Enabled) _chargeAnimTimer.Start();
     }
 
-    private static int CardHeightFor(DeviceManager.DeviceStatus status) =>
-        status.Reading?.SubReadings is { Count: > 0 } ? MultiReadingCardHeight : CardHeight;
-
     public void UpdateReadings(IReadOnlyList<DeviceManager.DeviceStatus> readings)
     {
         _readings = readings;
-        int cardsHeight = readings.Count == 0
-            ? CardHeight + CardGap
-            : readings.Sum(r => CardHeightFor(r) + CardGap);
-        Height = HeaderHeight + cardsHeight + FooterHeight + Pad;
+        int count = Math.Max(readings.Count, 1);
+        Height = HeaderHeight + count * (CardHeight + CardGap) + FooterHeight + Pad;
         Region = new Region(Gfx.RoundedRect(new RectangleF(0, 0, Width, Height), 14));
         StartChargeAnimIfNeeded();
         Invalidate();
@@ -167,11 +158,10 @@ internal sealed class BatteryPopupForm : Form
         {
             foreach (var r in _readings)
             {
-                int h = CardHeightFor(r);
-                var cardRect = new RectangleF(Pad, y, Width - Pad * 2, h);
+                var cardRect = new RectangleF(Pad, y, Width - Pad * 2, CardHeight);
                 DrawCard(g, cardRect, r);
                 _cardRects.Add((cardRect, r.ProviderId));
-                y += h + CardGap;
+                y += CardHeight + CardGap;
             }
         }
 
@@ -185,7 +175,7 @@ internal sealed class BatteryPopupForm : Form
         g.DrawString(Strings.PopupTitle, titleFont, titleBrush, Pad, 14);
 
         _closeButtonRect = new RectangleF(Width - Pad - 16, 14, 16, 16);
-        DrawCloseGlyph(g, _closeButtonRect, Theme.TextMuted);
+        DrawMinimizeGlyph(g, _closeButtonRect, Theme.TextMuted);
 
         _pinButtonRect = new RectangleF(_closeButtonRect.X - 8 - 16, 14, 16, 16);
         DrawPinGlyph(g, _pinButtonRect, _pinned ? Theme.AccentCyan : Theme.TextMuted, _pinned);
@@ -235,12 +225,15 @@ internal sealed class BatteryPopupForm : Form
     private static PointF PolarPoint(PointF center, float r, double angle) =>
         new((float)(center.X + Math.Cos(angle) * r), (float)(center.Y + Math.Sin(angle) * r));
 
-    private static void DrawCloseGlyph(Graphics g, RectangleF rect, Color color)
+    /// <summary>A single horizontal dash — the standard Windows minimize glyph (matches e.g. a
+    /// browser's own titlebar "−" button) — since this button actually just hides the popup back to
+    /// the tray rather than closing/exiting the app; an "×" implied the wrong action.</summary>
+    private static void DrawMinimizeGlyph(Graphics g, RectangleF rect, Color color)
     {
         using var pen = new Pen(color, 1.6f);
         float m = rect.Width * 0.2f;
-        g.DrawLine(pen, rect.Left + m, rect.Top + m, rect.Right - m, rect.Bottom - m);
-        g.DrawLine(pen, rect.Right - m, rect.Top + m, rect.Left + m, rect.Bottom - m);
+        float y = rect.Top + rect.Height * 0.6f;
+        g.DrawLine(pen, rect.Left + m, y, rect.Right - m, y);
     }
 
     /// <summary>A pushpin tilted ~35°, head to the upper-right and point to the lower-left — like
@@ -356,31 +349,47 @@ internal sealed class BatteryPopupForm : Form
             g.DrawString(Strings.PopupEtaPrefix + FormatEta(eta), etaFont, etaBrush, new RectangleF(rect.X, rect.Y + 8, rect.Width - 14, 14), sf);
         }
 
+        float gaugeBottom;
         if (status.Reading?.SubReadings is { Count: > 0 } subReadings)
         {
             // A device that's really more than one physical battery (e.g. a pair of earbuds) — each
-            // sub-reading gets its own short label and its own level color, so a listener that's
-            // fine doesn't visually hide one that's actually running low. Stacked vertically (one
-            // per line) rather than side by side, to match the stacked gauges on the right instead
-            // of mixing a horizontal layout on the left with a vertical one on the right.
-            using var subLabelFont = new Font("Segoe UI", 9f, FontStyle.Regular);
-            using var subPctFont = new Font("Segoe UI Semibold", 17f, FontStyle.Bold);
+            // sub-reading gets its own column pairing its number directly above its own gauge, so
+            // "which gauge belongs to which number" doesn't need to be inferred by matching them up
+            // across two separate zones of the card the way stacking all the numbers on the left and
+            // all the gauges on the right did.
+            float contentLeft = textX;
+            float contentRight = rect.Right - 14;
+            float colGap = 10f;
+            float colWidth = (contentRight - contentLeft - colGap * (subReadings.Count - 1)) / subReadings.Count;
+
+            using var subLabelFont = new Font("Segoe UI", 8f, FontStyle.Regular);
+            using var subPctFont = new Font("Segoe UI Semibold", 13f, FontStyle.Bold);
             using var subLabelBrush = new SolidBrush(Theme.TextMuted);
 
-            float lineH = subPctFont.GetHeight(g) + 3;
-            float startY = rect.Y + (rect.Height - lineH * subReadings.Count) / 2f + 8; // + label row clearance
-            float subY = startY;
-            foreach (var (subLabel, subPercent) in subReadings)
+            const float gh = 8f;
+            float gaugeY = rect.Y + 38;
+
+            for (int i = 0; i < subReadings.Count; i++)
             {
-                g.DrawString(subLabel, subLabelFont, subLabelBrush, textX, subY + 5);
+                var (subLabel, subPercent) = subReadings[i];
+                var subColor = Theme.LevelColor(subPercent);
+                float colX = contentLeft + i * (colWidth + colGap);
+
+                g.DrawString(subLabel, subLabelFont, subLabelBrush, colX, rect.Y + 22);
                 float labelW = g.MeasureString(subLabel, subLabelFont).Width;
+                string subText = subPercent + "%";
+                using var subPctBrush = new SolidBrush(subColor);
+                g.DrawString(subText, subPctFont, subPctBrush, colX + labelW + 3, rect.Y + 18);
 
-                string subText = subPercent.ToString();
-                using var subPctBrush = new SolidBrush(Theme.LevelColor(subPercent));
-                g.DrawString(subText, subPctFont, subPctBrush, textX + labelW + 4, subY);
-
-                subY += lineH;
+                var gaugeRect = new RectangleF(colX, gaugeY, colWidth, gh);
+                Gfx.DrawRoundedRect(g, gaugeRect, gh / 2f, Theme.Border, 1f);
+                float innerPad = 1.5f;
+                var innerRect = new RectangleF(gaugeRect.X + innerPad, gaugeRect.Y + innerPad, gaugeRect.Width - innerPad * 2, gaugeRect.Height - innerPad * 2);
+                float fillW = innerRect.Width * Math.Clamp(subPercent, 0, 100) / 100f;
+                if (fillW > 1)
+                    Gfx.FillRoundedRect(g, new RectangleF(innerRect.X, innerRect.Y, fillW, innerRect.Height), innerRect.Height / 2f, subColor);
             }
+            gaugeBottom = gaugeY + gh;
         }
         else
         {
@@ -396,38 +405,9 @@ internal sealed class BatteryPopupForm : Form
                 using var unitBrush = new SolidBrush(Theme.TextMuted);
                 g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 30);
             }
-        }
 
-        // Mini battery gauge(s) on the right — one per sub-reading (e.g. L/R earbuds) when present,
-        // so a listener that's fine can't visually mask one that's actually running low, matching
-        // the individually-colored numbers above. Falls back to a single gauge otherwise.
-        float gaugeW = 64;
-        float gaugeBottom;
-        if (status.Reading?.SubReadings is { Count: > 0 } gaugeSubReadings)
-        {
-            const float gh = 10f, gap = 6f;
-            float totalH = gaugeSubReadings.Count * gh + (gaugeSubReadings.Count - 1) * gap;
-            float startY = rect.Y + (rect.Height - totalH) / 2f;
-            float gx = rect.Right - gaugeW - 14;
-
-            for (int i = 0; i < gaugeSubReadings.Count; i++)
-            {
-                var subRect = new RectangleF(gx, startY + i * (gh + gap), gaugeW, gh);
-                Gfx.DrawRoundedRect(g, subRect, gh / 2f, Theme.Border, 1f);
-
-                float innerPad = 1.5f;
-                var innerRect = new RectangleF(subRect.X + innerPad, subRect.Y + innerPad, subRect.Width - innerPad * 2, subRect.Height - innerPad * 2);
-                float fillW = innerRect.Width * Math.Clamp(gaugeSubReadings[i].Percent, 0, 100) / 100f;
-                if (fillW > 1)
-                {
-                    using var fillBrush = new SolidBrush(Theme.LevelColor(gaugeSubReadings[i].Percent));
-                    Gfx.FillRoundedRect(g, new RectangleF(innerRect.X, innerRect.Y, fillW, innerRect.Height), innerRect.Height / 2f, Theme.LevelColor(gaugeSubReadings[i].Percent));
-                }
-            }
-            gaugeBottom = startY + totalH;
-        }
-        else
-        {
+            // Mini battery gauge on the right.
+            float gaugeW = 64;
             float gaugeH = 10;
             var gaugeRect = new RectangleF(rect.Right - gaugeW - 14, rect.Y + (rect.Height - gaugeH) / 2f, gaugeW, gaugeH);
             Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
