@@ -358,20 +358,51 @@ internal sealed class BatteryPopupForm : Form
             }
         }
 
-        // Mini battery gauge on the right.
-        float gaugeW = 64, gaugeH = 10;
-        var gaugeRect = new RectangleF(rect.Right - gaugeW - 14, rect.Y + (rect.Height - gaugeH) / 2f, gaugeW, gaugeH);
-        Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
-        if (status.Reading is { } reading)
+        // Mini battery gauge(s) on the right — one per sub-reading (e.g. L/R earbuds) when present,
+        // so a listener that's fine can't visually mask one that's actually running low, matching
+        // the individually-colored numbers above. Falls back to a single gauge otherwise.
+        float gaugeW = 64;
+        float gaugeBottom;
+        if (status.Reading?.SubReadings is { Count: > 0 } gaugeSubReadings)
         {
-            float innerPad = 2f;
-            var innerRect = new RectangleF(gaugeRect.X + innerPad, gaugeRect.Y + innerPad, gaugeRect.Width - innerPad * 2, gaugeRect.Height - innerPad * 2);
-            float fillW = innerRect.Width * Math.Clamp(reading.Percent, 0, 100) / 100f;
-            if (fillW > 1)
+            const float gh = 8f, gap = 4f;
+            float totalH = gaugeSubReadings.Count * gh + (gaugeSubReadings.Count - 1) * gap;
+            float startY = rect.Y + (rect.Height - totalH) / 2f;
+            float gx = rect.Right - gaugeW - 14;
+
+            for (int i = 0; i < gaugeSubReadings.Count; i++)
             {
-                using var fillBrush = new SolidBrush(level);
-                Gfx.FillRoundedRect(g, new RectangleF(innerRect.X, innerRect.Y, fillW, innerRect.Height), innerRect.Height / 2f, level);
+                var subRect = new RectangleF(gx, startY + i * (gh + gap), gaugeW, gh);
+                Gfx.DrawRoundedRect(g, subRect, gh / 2f, Theme.Border, 1f);
+
+                float innerPad = 1.5f;
+                var innerRect = new RectangleF(subRect.X + innerPad, subRect.Y + innerPad, subRect.Width - innerPad * 2, subRect.Height - innerPad * 2);
+                float fillW = innerRect.Width * Math.Clamp(gaugeSubReadings[i].Percent, 0, 100) / 100f;
+                if (fillW > 1)
+                {
+                    using var fillBrush = new SolidBrush(Theme.LevelColor(gaugeSubReadings[i].Percent));
+                    Gfx.FillRoundedRect(g, new RectangleF(innerRect.X, innerRect.Y, fillW, innerRect.Height), innerRect.Height / 2f, Theme.LevelColor(gaugeSubReadings[i].Percent));
+                }
             }
+            gaugeBottom = startY + totalH;
+        }
+        else
+        {
+            float gaugeH = 10;
+            var gaugeRect = new RectangleF(rect.Right - gaugeW - 14, rect.Y + (rect.Height - gaugeH) / 2f, gaugeW, gaugeH);
+            Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
+            if (status.Reading is { } reading)
+            {
+                float innerPad = 2f;
+                var innerRect = new RectangleF(gaugeRect.X + innerPad, gaugeRect.Y + innerPad, gaugeRect.Width - innerPad * 2, gaugeRect.Height - innerPad * 2);
+                float fillW = innerRect.Width * Math.Clamp(reading.Percent, 0, 100) / 100f;
+                if (fillW > 1)
+                {
+                    using var fillBrush = new SolidBrush(level);
+                    Gfx.FillRoundedRect(g, new RectangleF(innerRect.X, innerRect.Y, fillW, innerRect.Height), innerRect.Height / 2f, level);
+                }
+            }
+            gaugeBottom = gaugeRect.Bottom;
         }
 
         string? footNote = status.Reading is null
@@ -382,7 +413,7 @@ internal sealed class BatteryPopupForm : Form
             using var footFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
             using var footBrush = new SolidBrush(status.Reading is null ? Theme.TextMuted : Theme.AccentCyan);
             using var sf = new StringFormat { Alignment = StringAlignment.Far };
-            g.DrawString(footNote, footFont, footBrush, new RectangleF(rect.X, gaugeRect.Bottom + 3, rect.Width - 14, 14), sf);
+            g.DrawString(footNote, footFont, footBrush, new RectangleF(rect.X, gaugeBottom + 3, rect.Width - 14, 14), sf);
         }
     }
 

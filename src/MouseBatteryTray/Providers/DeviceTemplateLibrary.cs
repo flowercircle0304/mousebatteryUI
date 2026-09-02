@@ -10,7 +10,7 @@ public sealed class DeviceTemplate
     public string Manufacturer { get; set; } = "";
     public string Model { get; set; } = "";
 
-    /// <summary>"logitech-hidpp", "razer", or "sony-inzone-buds" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", or "sprime-pm1" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -154,6 +154,16 @@ public static class DeviceTemplateLibrary
             ProductId = 0x0EC2,
             Verified = false,
             Notes = "マウスではなくワイヤレスイヤホンですが、同じUSB 2.4GHzドングル方式のため対応。HeadsetControlプロジェクト（github.com/Sapd/HeadsetControl）の実装を基に移植。実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "SPRIME",
+            Model = "PM1",
+            Kind = "sprime-pm1",
+            VendorId = 0x1915,
+            ProductId = 0xAC1C,
+            Verified = false,
+            Notes = "SPRIME公式のWeb設定ツール（sprime.pro、WebHID使用）のJSソースに書かれていたコマンドをそのまま移植。ベンダー公式ソース由来ですが、このアプリでの実機検証はまだ済んでいません。",
         },
     };
 }
