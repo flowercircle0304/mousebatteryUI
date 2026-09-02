@@ -102,7 +102,7 @@ public static class DeviceDiscovery
     /// devices this app has no specific driver for yet. Uses <see cref="RawHidFeatureIo"/> rather
     /// than HidSharp's own Open(), since the target collection is very often the mouse's own primary
     /// usage, which Windows blocks from full read/write access.</summary>
-    public static PassiveMatch? TryPassiveFeatureMatch(int vendorId, int productId, int targetPercent, Action<string>? log)
+    public static PassiveMatch? TryPassiveFeatureMatch(int vendorId, int productId, int targetPercent, Action<string>? log, CancellationToken ct = default)
     {
         var collections = DeviceList.Local.GetHidDevices()
             .Where(d => d.VendorID == vendorId && d.ProductID == productId)
@@ -110,6 +110,8 @@ public static class DeviceDiscovery
 
         foreach (var dev in collections)
         {
+            if (ct.IsCancellationRequested) return null;
+
             int featLen = dev.GetMaxFeatureReportLength();
             // Some vendors' configuration channel (DPI/buttons/RGB/battery all sharing one big
             // feature report) run to several hundred bytes — a cap tuned for small dongle reports
@@ -126,7 +128,7 @@ public static class DeviceDiscovery
             using (handle)
             {
                 var samples = new List<byte[]>();
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 3 && !ct.IsCancellationRequested; i++)
                 {
                     var buf = new byte[featLen];
                     if (RawHidFeatureIo.GetFeature(handle, buf)) samples.Add(buf);
@@ -161,7 +163,7 @@ public static class DeviceDiscovery
     /// ATK's own 17 bytes), then scans the whole response for a byte matching
     /// <paramref name="targetPercent"/> instead of assuming ATK's own offset. Only this one specific,
     /// already-proven-safe read command is ever sent — no brute-forcing of unknown command ids.</summary>
-    public static ActiveMatch? TryActiveCompxMatch(int vendorId, int productId, int targetPercent, Action<string>? log)
+    public static ActiveMatch? TryActiveCompxMatch(int vendorId, int productId, int targetPercent, Action<string>? log, CancellationToken ct = default)
     {
         const byte outputReportId = 8;
         const byte commandId = 4;
@@ -180,6 +182,8 @@ public static class DeviceDiscovery
 
         foreach (var dev in candidates)
         {
+            if (ct.IsCancellationRequested) return null;
+
             int len = dev.GetMaxOutputReportLength();
             if (!dev.TryOpen(out var stream)) continue;
 
@@ -197,7 +201,7 @@ public static class DeviceDiscovery
                     stream.Write(outBuf);
 
                     var samples = new List<byte[]>();
-                    for (int attempt = 0; attempt < 3; attempt++)
+                    for (int attempt = 0; attempt < 3 && !ct.IsCancellationRequested; attempt++)
                     {
                         var inBuf = new byte[len];
                         int n = stream.Read(inBuf);

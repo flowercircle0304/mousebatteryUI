@@ -117,6 +117,172 @@ static class Program
         string templatePath = Path.Combine(dir, "template_snapshot.png");
         templateBmp.Save(templatePath, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine($"Saved template snapshot to {templatePath}");
+
+        RenderIconCandidates(dir);
+    }
+
+    // Scratch comparison sheet for redesigning the gear/pin header glyphs — not shipped, just a
+    // side-by-side render so a choice can be made before touching BatteryPopupForm's real icons.
+    private static void RenderIconCandidates(string dir)
+    {
+        const int cell = 96;
+        const int cols = 6;
+        const int rows = 2;
+        using var sheet = new Bitmap(cell * cols, cell * rows);
+        using var g = Graphics.FromImage(sheet);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(Theme.Background);
+
+        using var labelFont = new Font("Segoe UI", 8f);
+        using var labelBrush = new SolidBrush(Theme.TextMuted);
+
+        void Cell(int col, int row, string label, Action<RectangleF> draw)
+        {
+            var iconRect = new RectangleF(col * cell + cell * 0.28f, row * cell + 6, cell * 0.44f, cell * 0.44f);
+            Gfx.FillRoundedRect(g, new RectangleF(col * cell + 4, row * cell + 4, cell - 8, cell - 8), 8, Theme.CardBackground);
+            draw(iconRect);
+            var textRect = new RectangleF(col * cell, row * cell + cell - 26, cell, 22);
+            using var sf = new StringFormat { Alignment = StringAlignment.Center };
+            g.DrawString(label, labelFont, labelBrush, textRect, sf);
+        }
+
+        Cell(0, 0, "現行(歯車)", r => DrawGearCurrent(g, r, Theme.TextMuted));
+        Cell(1, 0, "歯車A(細歯 x8)", r => DrawGearCandidate(g, r, Theme.TextMuted, 8, 0.30f, 1.5f));
+        Cell(2, 0, "歯車B(太歯 x6)", r => DrawGearCandidate(g, r, Theme.TextMuted, 6, 0.38f, 1.7f));
+        Cell(3, 0, "レンチ", r => DrawWrenchCandidate(g, r, Theme.TextMuted, 1.8f));
+        Cell(4, 0, "現行(ピン)", r => DrawPinCurrent(g, r, Theme.AccentCyan, false));
+        Cell(5, 0, "現行(ピン留め済)", r => DrawPinCurrent(g, r, Theme.AccentCyan, true));
+
+        Cell(0, 1, "画鋲A", r => DrawPinThumbtack(g, r, Theme.AccentCyan, false));
+        Cell(1, 1, "画鋲A(留め済)", r => DrawPinThumbtack(g, r, Theme.AccentCyan, true));
+        Cell(2, 1, "マーカーB", r => DrawPinMarker(g, r, Theme.AccentCyan, false));
+        Cell(3, 1, "マーカーB(留め済)", r => DrawPinMarker(g, r, Theme.AccentCyan, true));
+
+        string path = Path.Combine(dir, "icon_candidates.png");
+        sheet.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine($"Saved icon candidates to {path}");
+    }
+
+    private static void DrawGearCurrent(Graphics g, RectangleF rect, Color color)
+    {
+        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        float outer = rect.Width / 2f;
+        float inner = outer * 0.55f;
+        using var pen = new Pen(color, 1.6f);
+        g.DrawEllipse(pen, center.X - inner * 0.9f, center.Y - inner * 0.9f, inner * 1.8f, inner * 1.8f);
+        for (int i = 0; i < 8; i++)
+        {
+            double angle = i * Math.PI / 4;
+            float x1 = center.X + (float)(Math.Cos(angle) * inner);
+            float y1 = center.Y + (float)(Math.Sin(angle) * inner);
+            float x2 = center.X + (float)(Math.Cos(angle) * outer);
+            float y2 = center.Y + (float)(Math.Sin(angle) * outer);
+            g.DrawLine(pen, x1, y1, x2, y2);
+        }
+    }
+
+    private static void DrawPinCurrent(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        var headRect = new RectangleF(rect.X + rect.Width * 0.15f, rect.Y, rect.Width * 0.7f, rect.Width * 0.7f);
+        using var pen = new Pen(color, 1.4f);
+        if (filled) { using var b = new SolidBrush(color); g.FillEllipse(b, headRect); }
+        else g.DrawEllipse(pen, headRect);
+        float cx = rect.X + rect.Width / 2f;
+        g.DrawLine(pen, cx, headRect.Bottom - 1, cx, rect.Bottom);
+    }
+
+    private static PointF PolarPoint(PointF center, float r, double angle) =>
+        new((float)(center.X + Math.Cos(angle) * r), (float)(center.Y + Math.Sin(angle) * r));
+
+    private static void DrawGearCandidate(Graphics g, RectangleF rect, Color color, int teeth, float toothDepth, float strokeWidth)
+    {
+        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        float rOuter = rect.Width / 2f;
+        float rInner = rOuter * (1f - toothDepth);
+        float hubR = rOuter * 0.34f;
+
+        double toothAngle = 2 * Math.PI / teeth;
+        double halfTop = toothAngle * 0.34 / 2;
+        double halfGap = toothAngle * 0.66 / 2;
+
+        var pts = new List<PointF>();
+        for (int i = 0; i < teeth; i++)
+        {
+            double baseAngle = i * toothAngle - Math.PI / 2;
+            pts.Add(PolarPoint(center, rInner, baseAngle - halfTop - halfGap));
+            pts.Add(PolarPoint(center, rOuter, baseAngle - halfTop));
+            pts.Add(PolarPoint(center, rOuter, baseAngle + halfTop));
+            pts.Add(PolarPoint(center, rInner, baseAngle + halfTop + halfGap));
+        }
+
+        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        path.AddPolygon(pts.ToArray());
+        using var pen = new Pen(color, strokeWidth) { LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
+        g.DrawPath(pen, path);
+        g.DrawEllipse(pen, center.X - hubR, center.Y - hubR, hubR * 2, hubR * 2);
+    }
+
+    private static void DrawWrenchCandidate(Graphics g, RectangleF rect, Color color, float strokeWidth)
+    {
+        var state = g.Save();
+        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        g.TranslateTransform(center.X, center.Y);
+        g.RotateTransform(45);
+        g.TranslateTransform(-center.X, -center.Y);
+
+        using var pen = new Pen(color, strokeWidth) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round };
+        float w = rect.Width;
+        float cx = rect.X + w / 2f;
+
+        g.DrawLine(pen, cx, rect.Y + w * 0.24f, cx, rect.Bottom - w * 0.24f);
+
+        float jawR = w * 0.24f;
+        var topJawRect = new RectangleF(cx - jawR, rect.Y, jawR * 2, jawR * 2);
+        g.DrawArc(pen, topJawRect, 50, 260);
+        var botJawRect = new RectangleF(cx - jawR, rect.Bottom - jawR * 2, jawR * 2, jawR * 2);
+        g.DrawArc(pen, botJawRect, 230, 260);
+
+        g.Restore(state);
+    }
+
+    private static void DrawPinThumbtack(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        float headR = rect.Width * 0.30f;
+        var headCenter = new PointF(rect.X + rect.Width / 2f, rect.Y + headR);
+        using var pen = new Pen(color, 1.4f);
+        using var brush = new SolidBrush(color);
+        if (filled) g.FillEllipse(brush, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+        else g.DrawEllipse(pen, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+
+        float baseHalfW = headR * 0.55f;
+        var p1 = new PointF(headCenter.X - baseHalfW, headCenter.Y + headR * 0.55f);
+        var p2 = new PointF(headCenter.X + baseHalfW, headCenter.Y + headR * 0.55f);
+        var tip = new PointF(headCenter.X, rect.Bottom);
+        g.FillPolygon(brush, new[] { p1, p2, tip });
+    }
+
+    private static void DrawPinMarker(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        float r = rect.Width * 0.30f;
+        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + r * 1.05f);
+        var tip = new PointF(center.X, rect.Bottom);
+
+        using var pen = new Pen(color, 1.4f);
+        using var brush = new SolidBrush(color);
+        float baseHalfW = r * 0.85f;
+        var p1 = new PointF(center.X - baseHalfW, center.Y + r * 0.35f);
+        var p2 = new PointF(center.X + baseHalfW, center.Y + r * 0.35f);
+        if (filled)
+        {
+            g.FillPolygon(brush, new[] { p1, p2, tip });
+            g.FillEllipse(brush, center.X - r, center.Y - r, r * 2, r * 2);
+        }
+        else
+        {
+            g.DrawLine(pen, p1, tip);
+            g.DrawLine(pen, p2, tip);
+            g.DrawEllipse(pen, center.X - r, center.Y - r, r * 2, r * 2);
+        }
     }
 
     private static void TestDiscovery()

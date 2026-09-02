@@ -154,6 +154,8 @@ public static class Strings
         "Current battery % (check the vendor's app or the mouse's own display):");
     public static string WizardScanButton => P("スキャン開始（受信待ち・安全）", "Start scan (listen only, safe)");
     public static string WizardActiveScanButton => P("アクティブ探索も試す（診断コマンド送信）", "Also try active probing (sends a diagnostic command)");
+    public static string WizardStopButton => P("停止", "Stop");
+    public static string WizardStopped => P("ユーザー操作により停止しました。", "Stopped.");
     public static string WizardNameLabel => P("表示名：", "Display name:");
     public static string WizardSaveButton => P("この設定を保存", "Save this device");
     public static string WizardClose => P("閉じる", "Close");

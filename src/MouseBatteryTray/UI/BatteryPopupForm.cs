@@ -189,25 +189,40 @@ internal sealed class BatteryPopupForm : Form
         g.DrawLine(linePen, Pad, HeaderHeight - 4, Width - Pad, HeaderHeight - 4);
     }
 
+    /// <summary>A proper toothed-gear silhouette (6 bold teeth) — the previous version was 8 thin
+    /// spokes radiating past a circle, which read as a sun/asterisk rather than a gear at this
+    /// icon's actual 20px size. Fewer, blockier teeth stay legible that small.</summary>
     private static void DrawGearGlyph(Graphics g, RectangleF rect, Color color)
     {
+        const int teeth = 6;
         var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
-        float outer = rect.Width / 2f;
-        float inner = outer * 0.55f;
+        float rOuter = rect.Width / 2f;
+        float rInner = rOuter * 0.62f; // 1 - toothDepth(0.38)
+        float hubR = rOuter * 0.34f;
 
-        using var pen = new Pen(color, 1.6f);
-        g.DrawEllipse(pen, center.X - inner * 0.9f, center.Y - inner * 0.9f, inner * 1.8f, inner * 1.8f);
+        double toothAngle = 2 * Math.PI / teeth;
+        double halfTop = toothAngle * 0.34 / 2;
+        double halfGap = toothAngle * 0.66 / 2;
 
-        for (int i = 0; i < 8; i++)
+        var pts = new List<PointF>();
+        for (int i = 0; i < teeth; i++)
         {
-            double angle = i * Math.PI / 4;
-            float x1 = center.X + (float)(Math.Cos(angle) * inner);
-            float y1 = center.Y + (float)(Math.Sin(angle) * inner);
-            float x2 = center.X + (float)(Math.Cos(angle) * outer);
-            float y2 = center.Y + (float)(Math.Sin(angle) * outer);
-            g.DrawLine(pen, x1, y1, x2, y2);
+            double baseAngle = i * toothAngle - Math.PI / 2;
+            pts.Add(PolarPoint(center, rInner, baseAngle - halfTop - halfGap));
+            pts.Add(PolarPoint(center, rOuter, baseAngle - halfTop));
+            pts.Add(PolarPoint(center, rOuter, baseAngle + halfTop));
+            pts.Add(PolarPoint(center, rInner, baseAngle + halfTop + halfGap));
         }
+
+        using var path = new GraphicsPath();
+        path.AddPolygon(pts.ToArray());
+        using var pen = new Pen(color, 1.7f) { LineJoin = LineJoin.Round };
+        g.DrawPath(pen, path);
+        g.DrawEllipse(pen, center.X - hubR, center.Y - hubR, hubR * 2, hubR * 2);
     }
+
+    private static PointF PolarPoint(PointF center, float r, double angle) =>
+        new((float)(center.X + Math.Cos(angle) * r), (float)(center.Y + Math.Sin(angle) * r));
 
     private static void DrawCloseGlyph(Graphics g, RectangleF rect, Color color)
     {
@@ -217,22 +232,31 @@ internal sealed class BatteryPopupForm : Form
         g.DrawLine(pen, rect.Right - m, rect.Top + m, rect.Left + m, rect.Bottom - m);
     }
 
+    /// <summary>A map-marker teardrop (circle tapering to a point) — the previous version was a
+    /// circle with a plain straight line under it, which read as a balloon-on-a-string rather than
+    /// a pin.</summary>
     private static void DrawPinGlyph(Graphics g, RectangleF rect, Color color, bool filled)
     {
-        var headRect = new RectangleF(rect.X + rect.Width * 0.15f, rect.Y, rect.Width * 0.7f, rect.Width * 0.7f);
+        float r = rect.Width * 0.30f;
+        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + r * 1.05f);
+        var tip = new PointF(center.X, rect.Bottom);
+
         using var pen = new Pen(color, 1.4f);
+        using var brush = new SolidBrush(color);
+        float baseHalfW = r * 0.85f;
+        var p1 = new PointF(center.X - baseHalfW, center.Y + r * 0.35f);
+        var p2 = new PointF(center.X + baseHalfW, center.Y + r * 0.35f);
         if (filled)
         {
-            using var brush = new SolidBrush(color);
-            g.FillEllipse(brush, headRect);
+            g.FillPolygon(brush, new[] { p1, p2, tip });
+            g.FillEllipse(brush, center.X - r, center.Y - r, r * 2, r * 2);
         }
         else
         {
-            g.DrawEllipse(pen, headRect);
+            g.DrawLine(pen, p1, tip);
+            g.DrawLine(pen, p2, tip);
+            g.DrawEllipse(pen, center.X - r, center.Y - r, r * 2, r * 2);
         }
-
-        float cx = rect.X + rect.Width / 2f;
-        g.DrawLine(pen, cx, headRect.Bottom - 1, cx, rect.Bottom);
     }
 
     /// <summary>A filled bolt shape (the classic "flash" silhouette), scaled to fit <paramref name="rect"/>.

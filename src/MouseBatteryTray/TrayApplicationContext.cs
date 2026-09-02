@@ -91,6 +91,11 @@ public sealed class TrayApplicationContext : ApplicationContext
             _deviceManager.ApplySettings(_settings);
             RefreshIcon();
         }
+
+        // Settings opens on top of the popup (hiding it first, above), so closing it — whether
+        // saved or cancelled — should bring the popup back rather than leaving the user looking at
+        // nothing but the tray, as if the whole app had been minimized away.
+        _popup.ShowNear(Cursor.Position);
     }
 
     private void LaunchCompanionApp(string providerId)

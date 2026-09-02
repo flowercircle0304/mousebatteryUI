@@ -24,6 +24,7 @@ internal sealed class AddMouseWizardForm : Form
     private string _passiveMatchKind = "passive-push";
     private DeviceDiscovery.ActiveMatch? _activeMatch;
     private CancellationTokenSource? _scanCts;
+    private bool _scanning;
 
     public AddMouseWizardForm(AppSettings settings)
     {
@@ -116,7 +117,11 @@ internal sealed class AddMouseWizardForm : Form
             ForeColor = Theme.Background,
         };
         _scanButton.FlatAppearance.BorderSize = 0;
-        _scanButton.Click += (_, _) => RunPassiveScan();
+        _scanButton.Click += (_, _) =>
+        {
+            if (_scanning) StopScan();
+            else RunPassiveScan();
+        };
         Controls.Add(_scanButton);
 
         _activeScanButton = new Button
@@ -131,7 +136,11 @@ internal sealed class AddMouseWizardForm : Form
             Enabled = false,
         };
         _activeScanButton.FlatAppearance.BorderColor = Theme.Border;
-        _activeScanButton.Click += (_, _) => RunActiveScan();
+        _activeScanButton.Click += (_, _) =>
+        {
+            if (_scanning) StopScan();
+            else RunActiveScan();
+        };
         Controls.Add(_activeScanButton);
 
         _log = new TextBox
@@ -221,6 +230,13 @@ internal sealed class AddMouseWizardForm : Form
         _log.AppendText(line + Environment.NewLine);
     }
 
+    private void StopScan()
+    {
+        _scanCts?.Cancel();
+        _scanButton.Enabled = false;
+        _activeScanButton.Enabled = false;
+    }
+
     private void RunPassiveScan()
     {
         if (_deviceCombo.SelectedIndex < 0)
@@ -236,7 +252,8 @@ internal sealed class AddMouseWizardForm : Form
         _resultLabel.Text = "";
         _saveButton.Enabled = false;
         _nameInput.Enabled = false;
-        _scanButton.Enabled = false;
+        _scanning = true;
+        _scanButton.Text = Strings.WizardStopButton;
         _activeScanButton.Enabled = false;
 
         AppendLog(Strings.WizardPassiveScanHeader(device.DisplayName, target));
@@ -254,12 +271,14 @@ internal sealed class AddMouseWizardForm : Form
             {
                 AppendLog(Strings.WizardPassiveNotFound);
                 AppendLog(Strings.WizardTryingFeatureScan);
-                match = DeviceDiscovery.TryPassiveFeatureMatch(device.VendorId, device.ProductId, target, AppendLog);
+                match = DeviceDiscovery.TryPassiveFeatureMatch(device.VendorId, device.ProductId, target, AppendLog, ct);
                 kind = "passive-feature";
             }
 
             BeginInvoke(() =>
             {
+                _scanning = false;
+                _scanButton.Text = Strings.WizardScanButton;
                 _scanButton.Enabled = true;
                 if (match is not null)
                 {
@@ -271,6 +290,11 @@ internal sealed class AddMouseWizardForm : Form
                     _nameInput.Text = device.DisplayName;
                     _nameInput.Enabled = true;
                     _saveButton.Enabled = true;
+                }
+                else if (ct.IsCancellationRequested)
+                {
+                    AppendLog(Strings.WizardStopped);
+                    _activeScanButton.Enabled = true;
                 }
                 else
                 {
@@ -295,16 +319,24 @@ internal sealed class AddMouseWizardForm : Form
             MessageBoxIcon.Warning);
         if (confirm != DialogResult.Yes) return;
 
-        _activeScanButton.Enabled = false;
+        _scanning = true;
+        _scanButton.Enabled = false;
+        _activeScanButton.Text = Strings.WizardStopButton;
         AppendLog(Strings.WizardActiveScanHeader(device.DisplayName, target));
         AppendLog(Strings.WizardActiveWakeHint);
 
+        _scanCts = new CancellationTokenSource();
+        var ct = _scanCts.Token;
+
         Task.Run(() =>
         {
-            var match = DeviceDiscovery.TryActiveCompxMatch(device.VendorId, device.ProductId, target, AppendLog);
+            var match = DeviceDiscovery.TryActiveCompxMatch(device.VendorId, device.ProductId, target, AppendLog, ct);
 
             BeginInvoke(() =>
             {
+                _scanning = false;
+                _activeScanButton.Text = Strings.WizardActiveScanButton;
+                _scanButton.Enabled = true;
                 if (match is not null)
                 {
                     _activeMatch = match;
@@ -315,6 +347,12 @@ internal sealed class AddMouseWizardForm : Form
                     _nameInput.Enabled = true;
                     _saveButton.Enabled = true;
                 }
+                else if (ct.IsCancellationRequested)
+                {
+                    _resultLabel.ForeColor = Theme.TextMuted;
+                    _resultLabel.Text = Strings.WizardStopped;
+                    _activeScanButton.Enabled = true;
+                }
                 else
                 {
                     _resultLabel.ForeColor = Theme.LevelLow;
@@ -322,7 +360,7 @@ internal sealed class AddMouseWizardForm : Form
                     _activeScanButton.Enabled = true;
                 }
             });
-        });
+        }, ct);
     }
 
     private void SaveAndClose()
