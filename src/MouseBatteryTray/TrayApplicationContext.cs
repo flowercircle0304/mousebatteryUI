@@ -57,6 +57,8 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         RefreshIcon();
         _ = CheckForUpdateAsync();
+        ShowBalloon(ToolTipIcon.Info, Strings.TrayStartupNoticeTitle, Strings.TrayStartupNoticeText,
+            onClick: () => _popup.ShowNear(Cursor.Position));
     }
 
     private void TogglePopup()

@@ -48,6 +48,7 @@ public static class ProviderRegistry
                     chargingByteOffset: d.ChargingByteOffset,
                     voltageByteOffset: d.VoltageByteOffset),
                 "logitech-hidpp" => new LogitechHidPpProvider(d.DisplayName),
+                "sony-inzone-buds" => new SonyInzoneBudsProvider(d.DisplayName),
                 "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), (byte)d.RazerTransactionId),
                 _ => null,
             };

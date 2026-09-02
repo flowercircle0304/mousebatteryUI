@@ -17,6 +17,14 @@ public static class Strings
 
     // ===== Tray / notifications =====
     public static string TrayScanning => P("マウスバッテリー: スキャン中...", "Mouse Battery: scanning...");
+    public static string TrayStartupNoticeTitle => P("マウスバッテリー", "Mouse Battery");
+    public static string TrayStartupNoticeText => P(
+        "タスクトレイに常駐してバッテリー残量の監視を開始しました。",
+        "Now running in the tray and monitoring battery levels.");
+    public static string AppAlreadyRunningTitle => P("既に起動しています", "Already running");
+    public static string AppAlreadyRunningText => P(
+        "マウスバッテリーは既にタスクトレイで起動しています。\nタスクトレイのアイコンをご確認ください。",
+        "Mouse Battery is already running in the tray.\nCheck the tray icons.");
     public static string TrayNoDevices => P("マウスバッテリー: 対応デバイス未検出", "Mouse Battery: no supported device found");
     public static string TrayLineWaiting(string label) => P($"{label}: 応答待ち...", $"{label}: waiting...");
     public static string TrayLineReading(string label, int percent, bool charging) =>
@@ -66,7 +74,7 @@ public static class Strings
     public static string DiagnosticsFailed(string message) => P($"保存に失敗しました:\n{message}", $"Failed to save:\n{message}");
     public static string SettingsLanguage => P("言語", "Language");
 
-    public static string SettingsSectionDevices => P("対応マウス", "Supported mice");
+    public static string SettingsSectionDevices => P("対応デバイス", "Supported devices");
     public static string SettingsDeviceHint => P(
         "チェックを外すとそのマウスの監視を停止します。連携ソフトのパス(または URL)を登録すると、\nポップアップでそのデバイスをクリックしたときに起動できます。",
         "Uncheck to stop monitoring that mouse. Register a companion app's path (or a URL) to\nlaunch it when you click that device's card in the popup.");
@@ -120,7 +128,7 @@ public static class Strings
 
     // ===== Template library =====
     public static string SettingsAddFromTemplate => P("テンプレートから追加...", "Add from template...");
-    public static string TemplateTitle => P("テンプレートからマウスを追加", "Add a mouse from a template");
+    public static string TemplateTitle => P("テンプレートから追加", "Add from a template");
     public static string TemplateHint => P(
         "Logitech・Razerなど、公開仕様を基に実装したテンプレートです。実機での検証はされていないものが含まれます（「未検証」表記）。",
         "Templates for Logitech, Razer, etc. implemented from public protocol documentation. Entries marked \"unverified\" haven't been confirmed on real hardware.");

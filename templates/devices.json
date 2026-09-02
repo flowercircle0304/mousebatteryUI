@@ -1,5 +1,5 @@
 {
-  "_readme": "コミュニティ投入型のマウス対応テンプレート集です。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp か razer、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理マウスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
+  "_readme": "コミュニティ投入型のデバイス対応テンプレート集です（マウスに限らず、USB 2.4GHzドングル方式の周辺機器全般）。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp・razer・sony-inzone-buds のいずれか、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理デバイスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
   "devices": [
     {
       "Manufacturer": "Logitech",
@@ -64,6 +64,15 @@
       "RazerTransactionId": 63,
       "Verified": false,
       "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
+    },
+    {
+      "Manufacturer": "Sony",
+      "Model": "INZONE Buds (WF-G700N)",
+      "Kind": "sony-inzone-buds",
+      "VendorId": 1356,
+      "ProductId": 3778,
+      "Verified": false,
+      "Notes": "マウスではなくワイヤレスイヤホンですが、同じUSB 2.4GHzドングル方式のため対応。HeadsetControlプロジェクト（github.com/Sapd/HeadsetControl）の実装を基に移植。実機未検証。"
     }
   ]
 }

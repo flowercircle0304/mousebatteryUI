@@ -27,9 +27,24 @@ static class Program
             return;
         }
 #endif
+        // Named per-user mutex: a second launch (e.g. double-clicking the exe again, or a stale
+        // shortcut) should tell the user this is already running rather than starting a competing
+        // instance that would fight the first one over the same HID handles and settings.json.
+        _singleInstanceMutex = new Mutex(true, "MouseBatteryTray-SingleInstance-3f6a9c2e-8b41-4d7a-9c3e-1a2b3c4d5e6f", out bool createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show(Strings.AppAlreadyRunningText, Strings.AppAlreadyRunningTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
     }
+
+    // Held for the process lifetime so the mutex isn't released until this instance actually
+    // exits — deliberately never disposed; the OS reclaims it on process exit.
+    private static Mutex? _singleInstanceMutex;
 
 #if DEBUG
     private static void RenderSnapshot(string outPath)

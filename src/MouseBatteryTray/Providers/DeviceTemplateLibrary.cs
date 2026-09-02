@@ -10,7 +10,7 @@ public sealed class DeviceTemplate
     public string Manufacturer { get; set; } = "";
     public string Model { get; set; } = "";
 
-    /// <summary>"logitech-hidpp" or "razer" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// <summary>"logitech-hidpp", "razer", or "sony-inzone-buds" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -28,9 +28,11 @@ public sealed class DeviceTemplate
 }
 
 /// <summary>
-/// A small, growing library of known (VID/PID/protocol) configurations for mice that use a
-/// documented, generalizable protocol (Logitech HID++, Razer's feature-report protocol) — as
-/// opposed to the per-device wizard, which is for protocols nobody has documented yet.
+/// A small, growing library of known (VID/PID/protocol) device configurations that use a
+/// documented, generalizable protocol (Logitech HID++, Razer's feature-report protocol, Sony
+/// INZONE Buds' passive push) — as opposed to the per-device wizard, which is for protocols nobody
+/// has documented yet. Not limited to mice — the underlying discovery/provider architecture only
+/// cares about "USB 2.4GHz receiver exposing HID reports", not what kind of peripheral it is.
 ///
 /// Hosted at templates/devices.json in this project's repo so it can grow via community PRs
 /// without needing an app update; fetched at runtime with a small bundled fallback for offline use
@@ -142,6 +144,16 @@ public static class DeviceTemplateLibrary
             RazerTransactionId = 0x3F,
             Verified = false,
             Notes = "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。",
+        },
+        new()
+        {
+            Manufacturer = "Sony",
+            Model = "INZONE Buds (WF-G700N)",
+            Kind = "sony-inzone-buds",
+            VendorId = 0x054C,
+            ProductId = 0x0EC2,
+            Verified = false,
+            Notes = "マウスではなくワイヤレスイヤホンですが、同じUSB 2.4GHzドングル方式のため対応。HeadsetControlプロジェクト（github.com/Sapd/HeadsetControl）の実装を基に移植。実機未検証。",
         },
     };
 }
