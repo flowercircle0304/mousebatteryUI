@@ -459,11 +459,9 @@ internal sealed class BatteryPopupForm : Form
 
     private void DrawFooter(Graphics g, float y)
     {
-        // Exit moved up to the header (alongside gear/pin/minimize), so this button is centered
-        // now that it's the only one left down here.
         using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
 
-        _refreshButtonRect = new RectangleF((Width - 110) / 2f, y + 8, 110, 24);
+        _refreshButtonRect = new RectangleF(Pad, y + 8, 110, 24);
         Gfx.DrawRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan, 1f);
         using (var b = new SolidBrush(Theme.AccentCyan))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
