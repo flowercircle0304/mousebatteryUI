@@ -43,7 +43,7 @@ public static class Strings
         P($"v{version} が利用可能です。クリックでダウンロードページを開きます。", $"v{version} is available. Click to open the download page.");
 
     // ===== Popup panel =====
-    public static string PopupTitle => "Battery Analyzer";
+    public static string PopupTitle => "バッテリーチェッカー";
     public static string PopupNoDevices => P("対応デバイスが見つかりません", "No supported device found");
     public static string PopupCharging => P("⚡充電中", "⚡ Charging");
     public static string PopupWaiting => P("応答待ち", "Waiting...");

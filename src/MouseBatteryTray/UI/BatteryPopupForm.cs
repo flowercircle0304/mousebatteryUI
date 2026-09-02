@@ -14,6 +14,10 @@ internal sealed class BatteryPopupForm : Form
     private const int PopupWidth = 300;
     private const int Pad = 14;
     private const int CardHeight = 66;
+    // A multi-value device (e.g. L/R earbuds) stacks its numbers vertically to match the stacked
+    // gauges instead of cramming them side by side — that needs more vertical room than a single
+    // number does.
+    private const int MultiReadingCardHeight = 88;
     private const int CardGap = 8;
     private const int HeaderHeight = 46;
     private const int FooterHeight = 40;
@@ -78,11 +82,16 @@ internal sealed class BatteryPopupForm : Form
         if (Visible && AnyCharging() && !_chargeAnimTimer.Enabled) _chargeAnimTimer.Start();
     }
 
+    private static int CardHeightFor(DeviceManager.DeviceStatus status) =>
+        status.Reading?.SubReadings is { Count: > 0 } ? MultiReadingCardHeight : CardHeight;
+
     public void UpdateReadings(IReadOnlyList<DeviceManager.DeviceStatus> readings)
     {
         _readings = readings;
-        int count = Math.Max(readings.Count, 1);
-        Height = HeaderHeight + count * (CardHeight + CardGap) + FooterHeight + Pad;
+        int cardsHeight = readings.Count == 0
+            ? CardHeight + CardGap
+            : readings.Sum(r => CardHeightFor(r) + CardGap);
+        Height = HeaderHeight + cardsHeight + FooterHeight + Pad;
         Region = new Region(Gfx.RoundedRect(new RectangleF(0, 0, Width, Height), 14));
         StartChargeAnimIfNeeded();
         Invalidate();
@@ -158,10 +167,11 @@ internal sealed class BatteryPopupForm : Form
         {
             foreach (var r in _readings)
             {
-                var cardRect = new RectangleF(Pad, y, Width - Pad * 2, CardHeight);
+                int h = CardHeightFor(r);
+                var cardRect = new RectangleF(Pad, y, Width - Pad * 2, h);
                 DrawCard(g, cardRect, r);
                 _cardRects.Add((cardRect, r.ProviderId));
-                y += CardHeight + CardGap;
+                y += h + CardGap;
             }
         }
 
@@ -350,22 +360,26 @@ internal sealed class BatteryPopupForm : Form
         {
             // A device that's really more than one physical battery (e.g. a pair of earbuds) — each
             // sub-reading gets its own short label and its own level color, so a listener that's
-            // fine doesn't visually hide one that's actually running low.
-            using var subLabelFont = new Font("Segoe UI", 8f, FontStyle.Regular);
-            using var subPctFont = new Font("Segoe UI Semibold", 15f, FontStyle.Bold);
+            // fine doesn't visually hide one that's actually running low. Stacked vertically (one
+            // per line) rather than side by side, to match the stacked gauges on the right instead
+            // of mixing a horizontal layout on the left with a vertical one on the right.
+            using var subLabelFont = new Font("Segoe UI", 9f, FontStyle.Regular);
+            using var subPctFont = new Font("Segoe UI Semibold", 17f, FontStyle.Bold);
             using var subLabelBrush = new SolidBrush(Theme.TextMuted);
-            float subX = textX;
+
+            float lineH = subPctFont.GetHeight(g) + 3;
+            float startY = rect.Y + (rect.Height - lineH * subReadings.Count) / 2f + 8; // + label row clearance
+            float subY = startY;
             foreach (var (subLabel, subPercent) in subReadings)
             {
-                g.DrawString(subLabel, subLabelFont, subLabelBrush, subX, rect.Y + 27);
+                g.DrawString(subLabel, subLabelFont, subLabelBrush, textX, subY + 5);
                 float labelW = g.MeasureString(subLabel, subLabelFont).Width;
 
                 string subText = subPercent.ToString();
                 using var subPctBrush = new SolidBrush(Theme.LevelColor(subPercent));
-                g.DrawString(subText, subPctFont, subPctBrush, subX + labelW + 2, rect.Y + 21);
-                float pctW = g.MeasureString(subText, subPctFont).Width;
+                g.DrawString(subText, subPctFont, subPctBrush, textX + labelW + 4, subY);
 
-                subX += labelW + pctW + 16;
+                subY += lineH;
             }
         }
         else
@@ -391,7 +405,7 @@ internal sealed class BatteryPopupForm : Form
         float gaugeBottom;
         if (status.Reading?.SubReadings is { Count: > 0 } gaugeSubReadings)
         {
-            const float gh = 8f, gap = 4f;
+            const float gh = 10f, gap = 6f;
             float totalH = gaugeSubReadings.Count * gh + (gaugeSubReadings.Count - 1) * gap;
             float startY = rect.Y + (rect.Height - totalH) / 2f;
             float gx = rect.Right - gaugeW - 14;
