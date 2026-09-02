@@ -22,6 +22,7 @@ internal sealed class BatteryPopupForm : Form
     private IReadOnlyList<DeviceManager.DeviceStatus> _readings = Array.Empty<DeviceManager.DeviceStatus>();
     private RectangleF _refreshButtonRect;
     private RectangleF _exitButtonRect;
+    private RectangleF _footerExitButtonRect;
     private RectangleF _settingsButtonRect;
     private RectangleF _pinButtonRect;
     private RectangleF _closeButtonRect;
@@ -381,7 +382,7 @@ internal sealed class BatteryPopupForm : Form
             using var subLabelBrush = new SolidBrush(Theme.TextMuted);
 
             const float gh = 8f;
-            float gaugeY = rect.Y + 38;
+            float gaugeY = rect.Y + 42;
 
             for (int i = 0; i < subReadings.Count; i++)
             {
@@ -423,7 +424,7 @@ internal sealed class BatteryPopupForm : Form
             }
 
             float gaugeH = 9;
-            var gaugeRect = new RectangleF(textX, rect.Y + 40, rect.Right - 14 - textX, gaugeH);
+            var gaugeRect = new RectangleF(textX, rect.Y + 44, rect.Right - 14 - textX, gaugeH);
             Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
             if (status.Reading is { } reading)
             {
@@ -466,19 +467,27 @@ internal sealed class BatteryPopupForm : Form
         using (var b = new SolidBrush(Theme.AccentCyan))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
             g.DrawString(Strings.PopupRefresh, font, b, _refreshButtonRect, sf);
+
+        // Same exit action as the header's ×, just also reachable down here.
+        _footerExitButtonRect = new RectangleF(Width - Pad - 80, y + 8, 80, 24);
+        Gfx.DrawRoundedRect(g, _footerExitButtonRect, 12, Theme.TextMuted, 1f);
+        using (var b = new SolidBrush(Theme.TextMuted))
+        using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            g.DrawString(Strings.PopupExit, font, b, _footerExitButtonRect, sf);
+    }
+
+    private void RequestExit()
+    {
+        var confirm = MessageBox.Show(this, Strings.PopupExitConfirmText, Strings.PopupExitConfirmTitle,
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        if (confirm == DialogResult.Yes) ExitRequested?.Invoke();
     }
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
         base.OnMouseClick(e);
         if (_refreshButtonRect.Contains(e.Location)) { RefreshRequested?.Invoke(); return; }
-        if (_exitButtonRect.Contains(e.Location))
-        {
-            var confirm = MessageBox.Show(this, Strings.PopupExitConfirmText, Strings.PopupExitConfirmTitle,
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm == DialogResult.Yes) ExitRequested?.Invoke();
-            return;
-        }
+        if (_exitButtonRect.Contains(e.Location) || _footerExitButtonRect.Contains(e.Location)) { RequestExit(); return; }
         if (_settingsButtonRect.Contains(e.Location)) { SettingsRequested?.Invoke(); return; }
         if (_closeButtonRect.Contains(e.Location)) { Hide(); return; }
         if (_pinButtonRect.Contains(e.Location)) { TogglePinned(); return; }
@@ -507,7 +516,8 @@ internal sealed class BatteryPopupForm : Form
     }
 
     private bool IsOverInteractiveElement(Point p) =>
-        _refreshButtonRect.Contains(p) || _exitButtonRect.Contains(p) || _settingsButtonRect.Contains(p)
+        _refreshButtonRect.Contains(p) || _exitButtonRect.Contains(p) || _footerExitButtonRect.Contains(p)
+        || _settingsButtonRect.Contains(p)
         || _pinButtonRect.Contains(p) || _closeButtonRect.Contains(p)
         || _cardRects.Any(c => c.Rect.Contains(p));
 
@@ -551,6 +561,7 @@ internal sealed class BatteryPopupForm : Form
 
         bool overClickable = _refreshButtonRect.Contains(e.Location)
             || _exitButtonRect.Contains(e.Location)
+            || _footerExitButtonRect.Contains(e.Location)
             || _settingsButtonRect.Contains(e.Location)
             || _pinButtonRect.Contains(e.Location)
             || _closeButtonRect.Contains(e.Location)
