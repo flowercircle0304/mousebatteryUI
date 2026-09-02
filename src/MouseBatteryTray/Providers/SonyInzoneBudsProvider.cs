@@ -22,7 +22,7 @@ namespace MouseBatteryTray.Providers;
 /// </summary>
 public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
 {
-    public string Id => "sony-inzone-buds";
+    public string Id { get; }
     public string DisplayName { get; }
 
     private const int VendorId = 0x054C;
@@ -33,8 +33,9 @@ public sealed class SonyInzoneBudsProvider : IMouseBatteryProvider
     private const int RightEarbudOffset = 14;
     private const int LeftEarbudOffset = 16;
 
-    public SonyInzoneBudsProvider(string displayName = "Sony INZONE Buds")
+    public SonyInzoneBudsProvider(string id = "sony-inzone-buds", string displayName = "Sony INZONE Buds")
     {
+        Id = id;
         DisplayName = displayName;
     }
 

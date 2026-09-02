@@ -47,9 +47,9 @@ public static class ProviderRegistry
                     percentByteOffset: d.ReportLength > 0 ? d.BatteryByteOffset : 6,
                     chargingByteOffset: d.ChargingByteOffset,
                     voltageByteOffset: d.VoltageByteOffset),
-                "logitech-hidpp" => new LogitechHidPpProvider(d.DisplayName),
-                "sony-inzone-buds" => new SonyInzoneBudsProvider(d.DisplayName),
-                "sprime-pm1" => new SprimePM1Provider(d.DisplayName),
+                "logitech-hidpp" => new LogitechHidPpProvider(d.Id, d.DisplayName),
+                "sony-inzone-buds" => new SonyInzoneBudsProvider(d.Id, d.DisplayName),
+                "sprime-pm1" => new SprimePM1Provider(d.Id, d.DisplayName),
                 "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), (byte)d.RazerTransactionId),
                 _ => null,
             };

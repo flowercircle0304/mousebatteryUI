@@ -20,11 +20,12 @@ namespace MouseBatteryTray.Providers;
 /// </summary>
 public sealed class LogitechHidPpProvider : IMouseBatteryProvider
 {
-    public string Id => "logitech-hidpp";
+    public string Id { get; }
     public string DisplayName { get; }
 
-    public LogitechHidPpProvider(string displayName = "Logitech (HID++ 2.0)")
+    public LogitechHidPpProvider(string id = "logitech-hidpp", string displayName = "Logitech (HID++ 2.0)")
     {
+        Id = id;
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? "Logitech (HID++ 2.0)" : displayName;
     }
 

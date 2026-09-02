@@ -19,7 +19,7 @@ namespace MouseBatteryTray.Providers;
 /// </summary>
 public sealed class SprimePM1Provider : IMouseBatteryProvider
 {
-    public string Id => "sprime-pm1";
+    public string Id { get; }
     public string DisplayName { get; }
 
     private const int VendorId = 0x1915;
@@ -34,13 +34,56 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
     private const int FrameLength = 32; // 1 report-id byte + 31-byte payload, matching the vendor tool's Uint8Array(31)
     private const byte CommandGetStatus = 0x15;
 
-    public SprimePM1Provider(string displayName = "SPRIME PM1")
+    public SprimePM1Provider(string id = "sprime-pm1", string displayName = "SPRIME PM1")
     {
+        Id = id;
         DisplayName = displayName;
     }
 
     public bool OwnsVendorProduct(int vendorId, int productId) =>
         vendorId == VendorId && productId == ProductId;
+
+    /// <summary>Diagnostics-only: same request/response exchange as <see cref="Session.GetLatest"/>,
+    /// but reports exactly what happened (which step failed, or the raw response bytes) instead of
+    /// collapsing everything to null — for when "opens fine but never gets a reading" isn't enough
+    /// information to tell a wrong offset apart from a wrong request shape.</summary>
+    public static string DebugRawExchange(IReadOnlyList<HidDevice> collections)
+    {
+        var target = collections.FirstOrDefault(d => d.GetMaxFeatureReportLength() == CollectionFeatureLength);
+        if (target is null) return $"Feat={CollectionFeatureLength}のコレクションが見つかりません";
+        if (!target.TryOpen(out var stream)) return "コレクションのオープンに失敗しました";
+
+        using (stream)
+        {
+            var request = new byte[FrameLength];
+            request[0] = ReportId;
+            request[1] = CommandGetStatus;
+            request[4] = 0x01;
+
+            try
+            {
+                stream.SetFeature(request);
+            }
+            catch (Exception ex)
+            {
+                return $"送信: {BitConverter.ToString(request)} / SetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+            }
+
+            Thread.Sleep(90);
+
+            var response = new byte[FrameLength];
+            try
+            {
+                stream.GetFeature(response);
+            }
+            catch (Exception ex)
+            {
+                return $"送信: {BitConverter.ToString(request)} / GetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+            }
+
+            return $"送信: {BitConverter.ToString(request)} / 受信: {BitConverter.ToString(response)}";
+        }
+    }
 
     public IBatteryDeviceSession? TryOpen(IReadOnlyList<HidDevice> collections)
     {

@@ -83,6 +83,14 @@ public static class HidDiagnostics
                 sb.AppendLine(reading is null
                     ? $"    → VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4}: オープンには成功しましたが、バッテリー値を取得できませんでした"
                     : $"    → VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4}: {reading.Percent}% (取得成功)");
+
+                // The exception a provider's own GetLatest() hits is swallowed by design (so one
+                // bad read doesn't disrupt the whole poll cycle) — for a device whose protocol was
+                // ported from a vendor source rather than reverse-engineered from real hardware
+                // here, that's exactly the detail needed to tell "wrong offset" apart from "wrong
+                // request shape" apart from "device rejected it outright".
+                if (reading is null && provider is SprimePM1Provider)
+                    sb.AppendLine($"        デバッグ（生の送受信バイト列）: {SprimePM1Provider.DebugRawExchange(g.ToList())}");
             }
         }
 

@@ -178,9 +178,18 @@ internal sealed class TemplateLibraryForm : Form
 
     private void AddTemplate(DeviceTemplate template)
     {
-        string id = template.Kind == "logitech-hidpp"
-            ? "logitech-hidpp"
-            : $"razer-{template.ProductId:x4}";
+        // Kinds that only ever have one instance in the whole app get a fixed id; everything else
+        // (currently just "razer", which needs a distinct entry per model) is keyed by product id.
+        // This MUST match what each provider actually reports as its own Id (see ProviderRegistry) —
+        // a mismatch here means Settings can never tell this entry apart from a built-in one, so its
+        // delete button silently "hides" it instead of actually deleting it.
+        string id = template.Kind switch
+        {
+            "logitech-hidpp" => "logitech-hidpp",
+            "sony-inzone-buds" => "sony-inzone-buds",
+            "sprime-pm1" => "sprime-pm1",
+            _ => $"{template.Kind}-{template.ProductId:x4}",
+        };
 
         var spec = new DiscoveredDeviceSpec
         {
