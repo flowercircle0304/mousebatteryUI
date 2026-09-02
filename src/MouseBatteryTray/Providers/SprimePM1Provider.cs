@@ -10,10 +10,14 @@ namespace MouseBatteryTray.Providers;
 /// SetFeature/GetFeature battery-query sequence in cleartext: a first-party protocol reference,
 /// not a guess. <b>UNVERIFIED</b> against real hardware from within this app specifically.
 ///
-/// Wire protocol: Feature report id 5, 32 bytes total on the wire (1 report-id byte + a 31-byte
-/// payload — WebHID's sendFeatureReport/receiveFeatureReport strip the id byte, so offsets below
-/// are already adjusted +1 from what the vendor's own JS uses). Request: byte[1]=0x15 ("get
-/// status"), byte[4]=0x01, rest zero; the vendor's own tool waits ~90ms after sending before
+/// Wire protocol: Feature report id 5. The vendor's own WebHID call only sends/reads a 31-byte
+/// payload (32 bytes total with the report id) — WebHID is lenient about buffer size, but Win32's
+/// HidD_SetFeature/HidD_GetFeature are not: a real capture showed SetFeature accepting that 32-byte
+/// buffer fine while GetFeature failed outright, which is the classic symptom of a Windows HID
+/// driver expecting a buffer sized to the whole collection's declared max feature length rather
+/// than just this one report id's own (smaller) size. So both directions here use a buffer sized to
+/// the full collection length instead, zero-padded past the meaningful bytes. Request: byte[1]=0x15
+/// ("get status"), byte[4]=0x01, rest zero; the vendor's own tool waits ~90ms after sending before
 /// reading the response back on the same report id. Response payload:
 ///   byte[10]=battery% (0-100), byte[11]=charging flag, byte[12]=full-charge flag, byte[13]=online flag.
 /// </summary>
@@ -31,7 +35,6 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
     private const int CollectionFeatureLength = 704;
 
     private const byte ReportId = 5;
-    private const int FrameLength = 32; // 1 report-id byte + 31-byte payload, matching the vendor tool's Uint8Array(31)
     private const byte CommandGetStatus = 0x15;
 
     public SprimePM1Provider(string id = "sprime-pm1", string displayName = "SPRIME PM1")
@@ -55,7 +58,7 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
 
         using (stream)
         {
-            var request = new byte[FrameLength];
+            var request = new byte[CollectionFeatureLength];
             request[0] = ReportId;
             request[1] = CommandGetStatus;
             request[4] = 0x01;
@@ -66,22 +69,22 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
             }
             catch (Exception ex)
             {
-                return $"送信: {BitConverter.ToString(request)} / SetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+                return $"送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / SetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
             }
 
             Thread.Sleep(90);
 
-            var response = new byte[FrameLength];
+            var response = new byte[CollectionFeatureLength];
             try
             {
                 stream.GetFeature(response);
             }
             catch (Exception ex)
             {
-                return $"送信: {BitConverter.ToString(request)} / GetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
+                return $"送信: {BitConverter.ToString(request, 0, 16)}... ({request.Length}バイト) / GetFeatureで例外: {ex.GetType().Name}: {ex.Message}";
             }
 
-            return $"送信: {BitConverter.ToString(request)} / 受信: {BitConverter.ToString(response)}";
+            return $"送信: {BitConverter.ToString(request, 0, 16)}... / 受信: {BitConverter.ToString(response, 0, 16)}...（先頭16バイト、全{response.Length}バイト）";
         }
     }
 
@@ -113,7 +116,7 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
             {
                 try
                 {
-                    var request = new byte[FrameLength];
+                    var request = new byte[CollectionFeatureLength];
                     request[0] = ReportId;
                     request[1] = CommandGetStatus;
                     request[4] = 0x01;
@@ -121,7 +124,7 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
 
                     Thread.Sleep(90); // matches the vendor tool's own pacing between the request and the read
 
-                    var response = new byte[FrameLength];
+                    var response = new byte[CollectionFeatureLength];
                     _stream.GetFeature(response);
 
                     int percent = Math.Clamp((int)response[10], 0, 100);
