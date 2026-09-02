@@ -50,6 +50,10 @@ public static class Strings
     public static string PopupClickToLaunch => P("クリックで起動 ▷", "Click to launch ▷");
     public static string PopupRefresh => P("今すぐ更新", "Refresh now");
     public static string PopupExit => P("終了", "Exit");
+    public static string PopupExitConfirmTitle => P("終了の確認", "Confirm exit");
+    public static string PopupExitConfirmText => P(
+        "マウスバッテリーを終了しますか？\nバッテリー残量の監視・通知が停止します。",
+        "Exit Mouse Battery? Battery monitoring and notifications will stop.");
     public static string PopupEtaPrefix => P("残り約", "~");
     public static string PopupEtaHours(int hours) => P($"{hours}時間", $"{hours}h");
     public static string PopupEtaMinutes(int minutes) => P($"{minutes}分", $"{minutes}m");

@@ -174,7 +174,11 @@ internal sealed class BatteryPopupForm : Form
         using var titleBrush = new SolidBrush(Theme.AccentCyan);
         g.DrawString(Strings.PopupTitle, titleFont, titleBrush, Pad, 14);
 
-        _closeButtonRect = new RectangleF(Width - Pad - 16, 14, 16, 16);
+        // Titlebar-style row, right to left: gear (settings), pin, − (minimize to tray), × (exit).
+        _exitButtonRect = new RectangleF(Width - Pad - 16, 14, 16, 16);
+        DrawCloseGlyph(g, _exitButtonRect, Theme.TextMuted);
+
+        _closeButtonRect = new RectangleF(_exitButtonRect.X - 8 - 16, 14, 16, 16);
         DrawMinimizeGlyph(g, _closeButtonRect, Theme.TextMuted);
 
         _pinButtonRect = new RectangleF(_closeButtonRect.X - 8 - 16, 14, 16, 16);
@@ -234,6 +238,16 @@ internal sealed class BatteryPopupForm : Form
         float m = rect.Width * 0.2f;
         float y = rect.Top + rect.Height * 0.6f;
         g.DrawLine(pen, rect.Left + m, y, rect.Right - m, y);
+    }
+
+    /// <summary>An "×" — used for the header's actual exit-the-app button, moved up from the footer
+    /// to sit alongside minimize/pin/settings like a titlebar (gear, pin, −, ×).</summary>
+    private static void DrawCloseGlyph(Graphics g, RectangleF rect, Color color)
+    {
+        using var pen = new Pen(color, 1.6f);
+        float m = rect.Width * 0.2f;
+        g.DrawLine(pen, rect.Left + m, rect.Top + m, rect.Right - m, rect.Bottom - m);
+        g.DrawLine(pen, rect.Right - m, rect.Top + m, rect.Left + m, rect.Bottom - m);
     }
 
     /// <summary>A pushpin tilted ~35°, head to the upper-right and point to the lower-left — like
@@ -445,26 +459,28 @@ internal sealed class BatteryPopupForm : Form
 
     private void DrawFooter(Graphics g, float y)
     {
+        // Exit moved up to the header (alongside gear/pin/minimize), so this button is centered
+        // now that it's the only one left down here.
         using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
 
-        _refreshButtonRect = new RectangleF(Pad, y + 8, 110, 24);
+        _refreshButtonRect = new RectangleF((Width - 110) / 2f, y + 8, 110, 24);
         Gfx.DrawRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan, 1f);
         using (var b = new SolidBrush(Theme.AccentCyan))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
             g.DrawString(Strings.PopupRefresh, font, b, _refreshButtonRect, sf);
-
-        _exitButtonRect = new RectangleF(Width - Pad - 80, y + 8, 80, 24);
-        Gfx.DrawRoundedRect(g, _exitButtonRect, 12, Theme.TextMuted, 1f);
-        using (var b = new SolidBrush(Theme.TextMuted))
-        using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-            g.DrawString(Strings.PopupExit, font, b, _exitButtonRect, sf);
     }
 
     protected override void OnMouseClick(MouseEventArgs e)
     {
         base.OnMouseClick(e);
         if (_refreshButtonRect.Contains(e.Location)) { RefreshRequested?.Invoke(); return; }
-        if (_exitButtonRect.Contains(e.Location)) { ExitRequested?.Invoke(); return; }
+        if (_exitButtonRect.Contains(e.Location))
+        {
+            var confirm = MessageBox.Show(this, Strings.PopupExitConfirmText, Strings.PopupExitConfirmTitle,
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm == DialogResult.Yes) ExitRequested?.Invoke();
+            return;
+        }
         if (_settingsButtonRect.Contains(e.Location)) { SettingsRequested?.Invoke(); return; }
         if (_closeButtonRect.Contains(e.Location)) { Hide(); return; }
         if (_pinButtonRect.Contains(e.Location)) { TogglePinned(); return; }
