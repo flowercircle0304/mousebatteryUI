@@ -301,6 +301,7 @@ internal sealed class AddMouseWizardForm : Form
                     AppendLog(Strings.WizardPassiveFeatureNotFound);
                     _activeScanButton.Enabled = true;
                 }
+                AppendLog(Strings.WizardScanComplete);
             });
         }, ct);
     }
@@ -359,6 +360,7 @@ internal sealed class AddMouseWizardForm : Form
                     _resultLabel.Text = Strings.WizardNotFoundActive;
                     _activeScanButton.Enabled = true;
                 }
+                AppendLog(Strings.WizardScanComplete);
             });
         }, ct);
     }

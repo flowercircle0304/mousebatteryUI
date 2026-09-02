@@ -127,7 +127,7 @@ static class Program
     {
         const int cell = 96;
         const int cols = 6;
-        const int rows = 2;
+        const int rows = 3;
         using var sheet = new Bitmap(cell * cols, cell * rows);
         using var g = Graphics.FromImage(sheet);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -155,8 +155,15 @@ static class Program
 
         Cell(0, 1, "画鋲A", r => DrawPinThumbtack(g, r, Theme.AccentCyan, false));
         Cell(1, 1, "画鋲A(留め済)", r => DrawPinThumbtack(g, r, Theme.AccentCyan, true));
-        Cell(2, 1, "マーカーB", r => DrawPinMarker(g, r, Theme.AccentCyan, false));
-        Cell(3, 1, "マーカーB(留め済)", r => DrawPinMarker(g, r, Theme.AccentCyan, true));
+        Cell(2, 1, "現行v0.5.12(マーカーB)", r => DrawPinMarker(g, r, Theme.AccentCyan, false));
+        Cell(3, 1, "現行v0.5.12(留め済)", r => DrawPinMarker(g, r, Theme.AccentCyan, true));
+
+        Cell(0, 2, "画鋲C(斜め)", r => DrawPinThumbtackTilted(g, r, Theme.AccentCyan, false));
+        Cell(1, 2, "画鋲C(斜め・留め済)", r => DrawPinThumbtackTilted(g, r, Theme.AccentCyan, true));
+        Cell(2, 2, "画鋲D(斜め+光沢点)", r => DrawPinThumbtackTiltedShiny(g, r, Theme.AccentCyan, false));
+        Cell(3, 2, "画鋲D(斜め+光沢点・留め済)", r => DrawPinThumbtackTiltedShiny(g, r, Theme.AccentCyan, true));
+        Cell(4, 2, "画鋲E(フラグ型)", r => DrawPinFlag(g, r, Theme.AccentCyan, false));
+        Cell(5, 2, "画鋲E(留め済)", r => DrawPinFlag(g, r, Theme.AccentCyan, true));
 
         string path = Path.Combine(dir, "icon_candidates.png");
         sheet.Save(path, System.Drawing.Imaging.ImageFormat.Png);
@@ -283,6 +290,113 @@ static class Program
             g.DrawLine(pen, p2, tip);
             g.DrawEllipse(pen, center.X - r, center.Y - r, r * 2, r * 2);
         }
+    }
+
+    /// <summary>Round head + a needle angled off to the lower-left, like Material Design's
+    /// "push_pin" icon and the reference thumbtack image — a tilt reads as more recognizably
+    /// "pinned down at an angle" than a dead-straight needle does.</summary>
+    private static void DrawPinThumbtackTilted(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        var state = g.Save();
+        var center0 = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        g.TranslateTransform(center0.X, center0.Y);
+        g.RotateTransform(-35);
+        g.TranslateTransform(-center0.X, -center0.Y);
+
+        float headR = rect.Width * 0.28f;
+        var headCenter = new PointF(rect.X + rect.Width / 2f, rect.Y + headR * 1.1f);
+        using var pen = new Pen(color, 1.4f);
+        using var brush = new SolidBrush(color);
+        if (filled) g.FillEllipse(brush, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+        else g.DrawEllipse(pen, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+
+        float baseHalfW = headR * 0.5f;
+        var p1 = new PointF(headCenter.X - baseHalfW, headCenter.Y + headR * 0.6f);
+        var p2 = new PointF(headCenter.X + baseHalfW, headCenter.Y + headR * 0.6f);
+        var tip = new PointF(headCenter.X, rect.Bottom);
+        g.FillPolygon(brush, new[] { p1, p2, tip });
+
+        g.Restore(state);
+    }
+
+    /// <summary>Same tilt as <see cref="DrawPinThumbtackTilted"/>, plus a small punched-out highlight
+    /// dot on the head — a flat, single-color nod to the glossy highlight on a real pushpin, without
+    /// needing a second color or a gradient.</summary>
+    private static void DrawPinThumbtackTiltedShiny(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        var state = g.Save();
+        var center0 = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        g.TranslateTransform(center0.X, center0.Y);
+        g.RotateTransform(-35);
+        g.TranslateTransform(-center0.X, -center0.Y);
+
+        float headR = rect.Width * 0.28f;
+        var headCenter = new PointF(rect.X + rect.Width / 2f, rect.Y + headR * 1.1f);
+        using var pen = new Pen(color, 1.4f);
+        using var brush = new SolidBrush(color);
+        if (filled) g.FillEllipse(brush, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+        else g.DrawEllipse(pen, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+
+        float baseHalfW = headR * 0.5f;
+        var p1 = new PointF(headCenter.X - baseHalfW, headCenter.Y + headR * 0.6f);
+        var p2 = new PointF(headCenter.X + baseHalfW, headCenter.Y + headR * 0.6f);
+        var tip = new PointF(headCenter.X, rect.Bottom);
+        g.FillPolygon(brush, new[] { p1, p2, tip });
+
+        if (filled)
+        {
+            float dotR = headR * 0.24f;
+            var dotCenter = new PointF(headCenter.X - headR * 0.32f, headCenter.Y - headR * 0.32f);
+            using var holeBrush = new SolidBrush(Theme.CardBackground);
+            g.FillEllipse(holeBrush, dotCenter.X - dotR, dotCenter.Y - dotR, dotR * 2, dotR * 2);
+        }
+
+        g.Restore(state);
+    }
+
+    /// <summary>A "flag/thumbtack" outline (flat-top head with tapered shoulders, into a shaft, into
+    /// a point with a small base arc) — modeled after a Font-Awesome-style pushpin reference the
+    /// user preferred over the plain circle-head thumbtack.</summary>
+    private static void DrawPinFlag(Graphics g, RectangleF rect, Color color, bool filled)
+    {
+        var state = g.Save();
+        var center0 = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        g.TranslateTransform(center0.X, center0.Y);
+        g.RotateTransform(-35);
+        g.TranslateTransform(-center0.X, -center0.Y);
+
+        using var pen = new Pen(color, 1.5f)
+        {
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round,
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+        };
+
+        float w = rect.Width;
+        float x0 = rect.X, y0 = rect.Y;
+
+        var head = new[]
+        {
+            new PointF(x0 + w * 0.22f, y0 + w * 0.04f),
+            new PointF(x0 + w * 0.78f, y0 + w * 0.04f),
+            new PointF(x0 + w * 0.66f, y0 + w * 0.30f),
+            new PointF(x0 + w * 0.50f, y0 + w * 0.46f),
+            new PointF(x0 + w * 0.34f, y0 + w * 0.30f),
+        };
+        using var headPath = new System.Drawing.Drawing2D.GraphicsPath();
+        headPath.AddPolygon(head);
+        if (filled) { using var b = new SolidBrush(color); g.FillPath(b, headPath); }
+        g.DrawPath(pen, headPath);
+
+        var shaftTop = new PointF(x0 + w * 0.50f, y0 + w * 0.46f);
+        var tip = new PointF(x0 + w * 0.18f, rect.Bottom);
+        g.DrawLine(pen, shaftTop, tip);
+
+        float arcR = w * 0.14f;
+        var arcRect = new RectangleF(tip.X - arcR * 0.3f, tip.Y - arcR * 1.6f, arcR * 2, arcR * 2);
+        g.DrawArc(pen, arcRect, 200, 100);
+
+        g.Restore(state);
     }
 
     private static void TestDiscovery()

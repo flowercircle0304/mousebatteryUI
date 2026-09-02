@@ -157,21 +157,11 @@ internal sealed class BatteryPopupForm : Form
         DrawFooter(g, y);
     }
 
-    private static void DrawSpacedText(Graphics g, string text, Font font, Brush brush, float x, float y, float spacing)
-    {
-        float cx = x;
-        foreach (char c in text)
-        {
-            g.DrawString(c.ToString(), font, brush, cx, y);
-            cx += g.MeasureString(c.ToString(), font).Width + spacing;
-        }
-    }
-
     private void DrawHeader(Graphics g)
     {
         using var titleFont = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold);
         using var titleBrush = new SolidBrush(Theme.AccentCyan);
-        DrawSpacedText(g, Strings.PopupTitle, titleFont, titleBrush, Pad, 14, 1.6f);
+        g.DrawString(Strings.PopupTitle, titleFont, titleBrush, Pad, 14);
 
         _closeButtonRect = new RectangleF(Width - Pad - 16, 14, 16, 16);
         DrawCloseGlyph(g, _closeButtonRect, Theme.TextMuted);
@@ -232,31 +222,32 @@ internal sealed class BatteryPopupForm : Form
         g.DrawLine(pen, rect.Right - m, rect.Top + m, rect.Left + m, rect.Bottom - m);
     }
 
-    /// <summary>A map-marker teardrop (circle tapering to a point) — the previous version was a
-    /// circle with a plain straight line under it, which read as a balloon-on-a-string rather than
-    /// a pin.</summary>
+    /// <summary>A pushpin tilted ~35°, head to the upper-right and point to the lower-left — like
+    /// Material Design's "push_pin" icon and the reference thumbtack image the tilt was requested
+    /// from. A dead-straight needle (the previous two versions, in turn: a plain line, then a
+    /// vertical map-marker) reads flatter and less recognizably "pinned down" than an angled one.</summary>
     private static void DrawPinGlyph(Graphics g, RectangleF rect, Color color, bool filled)
     {
-        float r = rect.Width * 0.30f;
-        var center = new PointF(rect.X + rect.Width / 2f, rect.Y + r * 1.05f);
-        var tip = new PointF(center.X, rect.Bottom);
+        var state = g.Save();
+        var center0 = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+        g.TranslateTransform(center0.X, center0.Y);
+        g.RotateTransform(-35);
+        g.TranslateTransform(-center0.X, -center0.Y);
 
+        float headR = rect.Width * 0.28f;
+        var headCenter = new PointF(rect.X + rect.Width / 2f, rect.Y + headR * 1.1f);
         using var pen = new Pen(color, 1.4f);
         using var brush = new SolidBrush(color);
-        float baseHalfW = r * 0.85f;
-        var p1 = new PointF(center.X - baseHalfW, center.Y + r * 0.35f);
-        var p2 = new PointF(center.X + baseHalfW, center.Y + r * 0.35f);
-        if (filled)
-        {
-            g.FillPolygon(brush, new[] { p1, p2, tip });
-            g.FillEllipse(brush, center.X - r, center.Y - r, r * 2, r * 2);
-        }
-        else
-        {
-            g.DrawLine(pen, p1, tip);
-            g.DrawLine(pen, p2, tip);
-            g.DrawEllipse(pen, center.X - r, center.Y - r, r * 2, r * 2);
-        }
+        if (filled) g.FillEllipse(brush, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+        else g.DrawEllipse(pen, headCenter.X - headR, headCenter.Y - headR, headR * 2, headR * 2);
+
+        float baseHalfW = headR * 0.5f;
+        var p1 = new PointF(headCenter.X - baseHalfW, headCenter.Y + headR * 0.6f);
+        var p2 = new PointF(headCenter.X + baseHalfW, headCenter.Y + headR * 0.6f);
+        var tip = new PointF(headCenter.X, rect.Bottom);
+        g.FillPolygon(brush, new[] { p1, p2, tip });
+
+        g.Restore(state);
     }
 
     /// <summary>A filled bolt shape (the classic "flash" silhouette), scaled to fit <paramref name="rect"/>.

@@ -43,7 +43,7 @@ public static class Strings
         P($"v{version} が利用可能です。クリックでダウンロードページを開きます。", $"v{version} is available. Click to open the download page.");
 
     // ===== Popup panel =====
-    public static string PopupTitle => "MOUSE  BATTERY";
+    public static string PopupTitle => "Battery Analyzer";
     public static string PopupNoDevices => P("対応デバイスが見つかりません", "No supported device found");
     public static string PopupCharging => P("⚡充電中", "⚡ Charging");
     public static string PopupWaiting => P("応答待ち", "Waiting...");
@@ -156,6 +156,7 @@ public static class Strings
     public static string WizardActiveScanButton => P("アクティブ探索も試す（診断コマンド送信）", "Also try active probing (sends a diagnostic command)");
     public static string WizardStopButton => P("停止", "Stop");
     public static string WizardStopped => P("ユーザー操作により停止しました。", "Stopped.");
+    public static string WizardScanComplete => P("--- スキャン完了 ---", "--- Scan complete ---");
     public static string WizardNameLabel => P("表示名：", "Display name:");
     public static string WizardSaveButton => P("この設定を保存", "Save this device");
     public static string WizardClose => P("閉じる", "Close");
