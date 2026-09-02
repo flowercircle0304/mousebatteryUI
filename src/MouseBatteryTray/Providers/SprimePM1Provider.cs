@@ -20,8 +20,12 @@ namespace MouseBatteryTray.Providers;
 /// Wire protocol: Feature report id 5, confirmed 704 bytes via the parsed HID report descriptor.
 /// Request: byte[0]=report id, byte[1]=0x15 ("get status"), byte[4]=0x01, rest zero; the vendor's
 /// own tool waits ~90ms after sending before reading the response back on the same report id.
-/// Response payload: byte[10]=battery% (0-100), byte[11]=charging flag, byte[12]=full-charge flag,
-/// byte[13]=online flag.
+/// Response echoes the request shape (byte[1]/byte[4] come back unchanged) — real data starts at
+/// byte[9]=battery% (0-100), byte[10]=charging flag, byte[11]=full-charge flag, byte[12]=online
+/// flag. (These offsets are one lower than the vendor JS's own t.getUint8(9)/(10)/(11)/(12) —
+/// confirmed against a real capture: byte[9]=0x1D=29 with byte[10..12]=0,0,1, a coherent
+/// not-charging/not-full/online reading, so unlike the request side, WebHID's receiveFeatureReport
+/// apparently does NOT strip the leading report-id byte here despite what its documentation says.)
 /// </summary>
 public sealed class SprimePM1Provider : IMouseBatteryProvider
 {
@@ -142,8 +146,8 @@ public sealed class SprimePM1Provider : IMouseBatteryProvider
                 response[0] = ReportId;
                 if (!RawHidFeatureIo.GetFeature(_handle, response)) return null;
 
-                int percent = Math.Clamp((int)response[10], 0, 100);
-                bool charging = response[11] != 0;
+                int percent = Math.Clamp((int)response[9], 0, 100);
+                bool charging = response[10] != 0;
                 return new BatteryReading(percent, charging, null);
             }
         }
