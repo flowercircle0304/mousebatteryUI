@@ -10,7 +10,7 @@ public sealed class DeviceTemplate
     public string Manufacturer { get; set; } = "";
     public string Model { get; set; } = "";
 
-    /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", or "sprime-pm1" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", "sprime-pm1", or "wlmouse-strider" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -164,6 +164,17 @@ public static class DeviceTemplateLibrary
             ProductId = 0xAC1C,
             Verified = false,
             Notes = "SPRIME公式のWeb設定ツール（sprime.pro、WebHID使用）のJSソースに書かれていたコマンドをそのまま移植。ベンダー公式ソース由来ですが、このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Strider",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA872,
+            AdditionalProductIds = new List<int> { 0xA873 }, // 有線/BT直結時のPID
+            Verified = true,
+            Notes = "WLMouse公式のWebハブ（gm.wlmouse.gg、WebHID使用）のJSソースに書かれていたコマンドをそのまま移植。実機で動作確認済み。2.4GHzレシーバー経由（PID 0xA872）と有線/BT直結時（PID 0xA873）の両方を登録（このアプリでは有線/BT直結時のコレクションから取得できています）。",
         },
     };
 }

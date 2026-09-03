@@ -188,6 +188,7 @@ internal sealed class TemplateLibraryForm : Form
             "logitech-hidpp" => "logitech-hidpp",
             "sony-inzone-buds" => "sony-inzone-buds",
             "sprime-pm1" => "sprime-pm1",
+            "wlmouse-strider" => "wlmouse-strider",
             _ => $"{template.Kind}-{template.ProductId:x4}",
         };
 
