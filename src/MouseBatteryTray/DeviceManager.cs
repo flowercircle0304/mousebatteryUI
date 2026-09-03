@@ -47,18 +47,21 @@ public sealed class DeviceManager : IDisposable
     {
         var settings = _settings;
         var providers = ProviderRegistry.BuildAll(settings);
-        var groups = DeviceList.Local.GetHidDevices()
-            .GroupBy(d => (d.VendorID, d.ProductID))
-            .ToList();
+        var allDevices = DeviceList.Local.GetHidDevices().ToList();
 
         var seenKeys = new HashSet<string>();
 
-        foreach (var group in groups)
+        // Keyed by provider.Id (one settings entry = one card), not by (VendorId, ProductId): a
+        // single physical device can enumerate under more than one PID at once — e.g. WLMouse
+        // Strider shows up both via its 2.4GHz receiver and via its wired/BT direct PID while
+        // charging — and every HID collection any of them own is handed to TryOpen together so it
+        // doesn't get split into two cards for the same mouse.
+        foreach (var provider in providers)
         {
-            var provider = providers.FirstOrDefault(p => p.OwnsVendorProduct(group.Key.VendorID, group.Key.ProductID));
-            if (provider is null) continue;
+            string key = provider.Id;
 
-            string key = $"{group.Key.VendorID:X4}:{group.Key.ProductID:X4}";
+            var matching = allDevices.Where(d => provider.OwnsVendorProduct(d.VendorID, d.ProductID)).ToList();
+            if (matching.Count == 0) continue;
 
             if (!settings.IsEnabled(provider.Id))
             {
@@ -80,7 +83,7 @@ public sealed class DeviceManager : IDisposable
                 if (_active.ContainsKey(key)) continue;
             }
 
-            var session = provider.TryOpen(group.ToList());
+            var session = provider.TryOpen(matching);
             if (session is null) continue;
 
             lock (_lock)

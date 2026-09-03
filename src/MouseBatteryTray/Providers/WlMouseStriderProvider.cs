@@ -53,55 +53,82 @@ public sealed class WlMouseStriderProvider : IMouseBatteryProvider
 
     public IBatteryDeviceSession? TryOpen(IReadOnlyList<HidDevice> collections)
     {
-        var target = collections.FirstOrDefault(d => d.GetMaxFeatureReportLength() == FeatLen);
-        if (target is null) return null;
+        // The receiver PID and the wired/BT-direct PID can both be present at once (e.g. while a
+        // charging cable is plugged in), each exposing its own Feat=65 collection, but on real
+        // hardware only one of them actually answers the battery query — the other opens fine and
+        // just never responds. Open every candidate and let the session probe them at read time
+        // rather than guessing here, since which one is "live" can vary machine to machine.
+        var handles = collections
+            .Where(d => d.GetMaxFeatureReportLength() == FeatLen)
+            .Select(d => RawHidFeatureIo.Open(d.DevicePath))
+            .Where(h => h is not null)
+            .Select(h => h!)
+            .ToList();
 
-        var handle = RawHidFeatureIo.Open(target.DevicePath);
-        if (handle is null) return null;
-
-        return new Session(DisplayName, handle);
+        return handles.Count == 0 ? null : new Session(DisplayName, handles);
     }
 
     private sealed class Session : IBatteryDeviceSession
     {
-        private readonly SafeFileHandle _handle;
+        private readonly List<SafeFileHandle> _handles;
         private readonly object _lock = new();
+        private int _lastWorkingIndex;
 
         public string DeviceLabel { get; }
 
-        public Session(string label, SafeFileHandle handle)
+        public Session(string label, List<SafeFileHandle> handles)
         {
             DeviceLabel = label;
-            _handle = handle;
+            _handles = handles;
         }
 
         public BatteryReading? GetLatest()
         {
             lock (_lock)
             {
-                var request = new byte[FeatLen];
-                request[3] = 0x02;
-                request[4] = 0x02;
-                request[6] = 0x83;
-                if (!RawHidFeatureIo.SetFeature(_handle, request)) return null;
-
-                Thread.Sleep(100);
-
-                for (int attempt = 0; attempt < 10; attempt++)
+                // Try the handle that answered last time first, so a mouse that's plainly working
+                // doesn't pay the cost of probing a dead collection on every single poll.
+                for (int offset = 0; offset < _handles.Count; offset++)
                 {
-                    var response = new byte[FeatLen];
-                    if (RawHidFeatureIo.GetFeature(_handle, response) && response[1] == StatusReady)
+                    int index = (_lastWorkingIndex + offset) % _handles.Count;
+                    var reading = TryRead(_handles[index]);
+                    if (reading is not null)
                     {
-                        bool charging = response[7] == 1;
-                        int percent = Math.Clamp((int)response[8], 0, 100);
-                        return new BatteryReading(percent, charging, null);
+                        _lastWorkingIndex = index;
+                        return reading;
                     }
-                    Thread.Sleep(30);
                 }
-                return null; // mouse likely asleep — the next poll cycle tries again
+                return null; // mouse likely asleep on every candidate — the next poll cycle tries again
             }
         }
 
-        public void Dispose() => _handle.Dispose();
+        private static BatteryReading? TryRead(SafeFileHandle handle)
+        {
+            var request = new byte[FeatLen];
+            request[3] = 0x02;
+            request[4] = 0x02;
+            request[6] = 0x83;
+            if (!RawHidFeatureIo.SetFeature(handle, request)) return null;
+
+            Thread.Sleep(100);
+
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                var response = new byte[FeatLen];
+                if (RawHidFeatureIo.GetFeature(handle, response) && response[1] == StatusReady)
+                {
+                    bool charging = response[7] == 1;
+                    int percent = Math.Clamp((int)response[8], 0, 100);
+                    return new BatteryReading(percent, charging, null);
+                }
+                Thread.Sleep(30);
+            }
+            return null;
+        }
+
+        public void Dispose()
+        {
+            foreach (var handle in _handles) handle.Dispose();
+        }
     }
 }
