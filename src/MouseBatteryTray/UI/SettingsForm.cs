@@ -8,7 +8,7 @@ namespace MouseBatteryTray.UI;
 internal sealed class SettingsForm : Form
 {
     private readonly AppSettings _settings;
-    private readonly List<(IMouseBatteryProvider Provider, CheckBox Check, TextBox Name, TextBox Path)> _rows = new();
+    private readonly List<(IMouseBatteryProvider Provider, CheckBox Check, TextBox Name, TextBox Path, TextBox Path2)> _rows = new();
 
     private CheckBox _startupCheck = null!;
     private CheckBox _lowBatteryCheck = null!;
@@ -421,10 +421,47 @@ internal sealed class SettingsForm : Form
                     pathBox.Text = dlg.FileName;
             };
 
+            // A second, optional companion link — some devices (e.g. ones with both a web config
+            // tool and a native app) need two launchable targets, not just one.
+            var pathBox2 = new TextBox
+            {
+                Text = setting.CompanionPath2,
+                Location = new Point(224, y + 29),
+                Width = 190,
+                BackColor = Theme.CardBackground,
+                ForeColor = Theme.TextPrimary,
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = Strings.SettingsCompanionPlaceholder2,
+            };
+
+            var browse2 = new Button
+            {
+                Text = Strings.SettingsBrowse,
+                Location = new Point(420, y + 28),
+                Width = 60,
+                Height = 24,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Theme.CardBackground,
+                ForeColor = Theme.AccentCyan,
+            };
+            browse2.FlatAppearance.BorderColor = Theme.Border;
+            browse2.Click += (_, _) =>
+            {
+                using var dlg = new OpenFileDialog
+                {
+                    Filter = Strings.ExeFileFilter,
+                    Title = Strings.SettingsChooseCompanionTitle(provider.DisplayName),
+                };
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                    pathBox2.Text = dlg.FileName;
+            };
+
             Controls.Add(check);
             Controls.Add(nameBox);
             Controls.Add(pathBox);
             Controls.Add(browse);
+            Controls.Add(pathBox2);
+            Controls.Add(browse2);
 
             bool isCustom = _settings.DiscoveredDevices.Any(d => d.Id == provider.Id);
 
@@ -446,8 +483,8 @@ internal sealed class SettingsForm : Form
             };
             Controls.Add(delete);
 
-            _rows.Add((provider, check, nameBox, pathBox));
-            y += 40;
+            _rows.Add((provider, check, nameBox, pathBox, pathBox2));
+            y += 64;
         }
 
         if (hiddenProviders.Count > 0)
@@ -613,11 +650,12 @@ internal sealed class SettingsForm : Form
         _settings.FullChargeNotificationsEnabled = _fullChargeCheck.Checked;
         _settings.FullChargeThreshold = (int)_fullChargeThresholdInput.Value;
 
-        foreach (var (provider, check, name, path) in _rows)
+        foreach (var (provider, check, name, path, path2) in _rows)
         {
             var setting = _settings.GetOrCreate(provider.Id);
             setting.Enabled = check.Checked;
             setting.CompanionPath = path.Text.Trim();
+            setting.CompanionPath2 = path2.Text.Trim();
 
             var trimmedName = name.Text.Trim();
             if (trimmedName.Length > 0)

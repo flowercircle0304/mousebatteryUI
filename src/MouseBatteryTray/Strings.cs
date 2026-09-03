@@ -48,6 +48,7 @@ public static class Strings
     public static string PopupCharging => P("⚡充電中", "⚡ Charging");
     public static string PopupWaiting => P("応答待ち", "Waiting...");
     public static string PopupClickToLaunch => P("クリックで起動 ▷", "Click to launch ▷");
+    public static string PopupLaunchLink(int index) => P($"起動{index} ▷", $"Launch {index} ▷");
     public static string PopupRefresh => P("今すぐ更新", "Refresh now");
     public static string PopupExit => P("終了", "Exit");
     public static string PopupExitConfirmTitle => P("終了の確認", "Confirm exit");
@@ -80,11 +81,12 @@ public static class Strings
 
     public static string SettingsSectionDevices => P("対応デバイス", "Supported devices");
     public static string SettingsDeviceHint => P(
-        "チェックを外すとそのマウスの監視を停止します。連携ソフトのパス(または URL)を登録すると、\nポップアップでそのデバイスをクリックしたときに起動できます。",
-        "Uncheck to stop monitoring that mouse. Register a companion app's path (or a URL) to\nlaunch it when you click that device's card in the popup.");
+        "チェックを外すとそのマウスの監視を停止します。連携ソフトのパス(または URL)を登録すると、\nポップアップでそのデバイスをクリックしたときに起動できます（最大2つまで登録可）。",
+        "Uncheck to stop monitoring that mouse. Register a companion app's path (or a URL) to\nlaunch it when you click that device's card in the popup (up to two per device).");
     public static string SettingsAddMouse => P("＋ 新しいマウスを追加...", "＋ Add a new mouse...");
     public static string SettingsBrowse => P("参照...", "Browse...");
     public static string SettingsCompanionPlaceholder => P("未設定（クリックしても何も起きません）", "Not set (clicking does nothing)");
+    public static string SettingsCompanionPlaceholder2 => P("2つ目のリンク（任意）", "Second link (optional)");
     public static string SettingsChooseCompanionTitle(string deviceName) =>
         P($"{deviceName} の連携ソフトを選択", $"Choose a companion app for {deviceName}");
     public static string SettingsDelete => P("削除", "Delete");

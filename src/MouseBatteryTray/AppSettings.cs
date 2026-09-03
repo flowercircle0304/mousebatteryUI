@@ -10,6 +10,10 @@ public sealed class DeviceSetting
     /// <summary>Path to the companion app's .exe, or a URL, launched when the device's card is clicked. Empty = no link configured.</summary>
     public string CompanionPath { get; set; } = "";
 
+    /// <summary>A second, optional companion link — some devices ship both a web-based config tool
+    /// and a native app, and both are launchable this way. Empty = only the first link is used.</summary>
+    public string CompanionPath2 { get; set; } = "";
+
     /// <summary>
     /// True if the user "deleted" this entry from the settings list. Built-in providers can't
     /// actually be removed from the app, so deleting one just hides its row (and stops monitoring

@@ -51,6 +51,9 @@ static class Program
     {
         var settings = new AppSettings();
         settings.GetOrCreate("atk-compx").CompanionPath = @"C:\Program Files\Vendor App\VendorApp.exe";
+        var furycubeSetting = settings.GetOrCreate("furycube-f1");
+        furycubeSetting.CompanionPath = "https://example.com/web-driver";
+        furycubeSetting.CompanionPath2 = @"C:\Program Files\Vendor App\NativeApp.exe";
         settings.DiscoveredDevices.Add(new DiscoveredDeviceSpec
         {
             Kind = "compx", Id = "atk-compx", DisplayName = "Sample Mouse A", VendorId = 0x1, ProductId = 0x1,

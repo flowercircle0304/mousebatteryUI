@@ -100,19 +100,20 @@ public sealed class TrayApplicationContext : ApplicationContext
         _popup.ShowAgain();
     }
 
-    private void LaunchCompanionApp(string providerId)
+    private void LaunchCompanionApp(string providerId, int linkIndex)
     {
         if (!_settings.Devices.TryGetValue(providerId, out var setting)) return;
-        if (string.IsNullOrWhiteSpace(setting.CompanionPath)) return;
+        string path = linkIndex == 1 ? setting.CompanionPath2 : setting.CompanionPath;
+        if (string.IsNullOrWhiteSpace(path)) return;
 
         try
         {
-            Process.Start(new ProcessStartInfo(setting.CompanionPath) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
         catch
         {
             MessageBox.Show(
-                Strings.CompanionLaunchFailed(setting.CompanionPath),
+                Strings.CompanionLaunchFailed(path),
                 Strings.AppName,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

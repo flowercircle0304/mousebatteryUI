@@ -13,7 +13,7 @@ internal sealed class BatteryPopupForm : Form
 {
     private const int PopupWidth = 300;
     private const int Pad = 14;
-    private const int CardHeight = 66;
+    private const int CardHeight = 72;
     private const int CardGap = 8;
     private const int HeaderHeight = 46;
     private const int FooterHeight = 40;
@@ -27,6 +27,7 @@ internal sealed class BatteryPopupForm : Form
     private RectangleF _pinButtonRect;
     private RectangleF _closeButtonRect;
     private readonly List<(RectangleF Rect, string ProviderId)> _cardRects = new();
+    private readonly List<(RectangleF Rect, string ProviderId, int LinkIndex)> _companionLinkRects = new();
 
     private bool _pinned;
     private bool _dragging;
@@ -41,7 +42,7 @@ internal sealed class BatteryPopupForm : Form
     public event Action? RefreshRequested;
     public event Action? ExitRequested;
     public event Action? SettingsRequested;
-    public event Action<string>? DeviceCardClicked;
+    public event Action<string, int>? DeviceCardClicked;
 
     public BatteryPopupForm(AppSettings settings)
     {
@@ -144,6 +145,7 @@ internal sealed class BatteryPopupForm : Form
 
         DrawHeader(g);
         _cardRects.Clear();
+        _companionLinkRects.Clear();
 
         float y = HeaderHeight;
         if (_readings.Count == 0)
@@ -440,15 +442,46 @@ internal sealed class BatteryPopupForm : Form
             gaugeBottom = gaugeRect.Bottom;
         }
 
-        string? footNote = status.Reading is null
-            ? Strings.PopupWaiting
-            : HasCompanionApp(status.ProviderId) ? Strings.PopupClickToLaunch : null;
-        if (footNote is not null)
+        if (status.Reading is null)
         {
             using var footFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
-            using var footBrush = new SolidBrush(status.Reading is null ? Theme.TextMuted : Theme.AccentCyan);
+            using var footBrush = new SolidBrush(Theme.TextMuted);
             using var sf = new StringFormat { Alignment = StringAlignment.Far };
-            g.DrawString(footNote, footFont, footBrush, new RectangleF(rect.X, gaugeBottom + 3, rect.Width - 14, 14), sf);
+            g.DrawString(Strings.PopupWaiting, footFont, footBrush, new RectangleF(rect.X, gaugeBottom + 3, rect.Width - 14, 14), sf);
+            return;
+        }
+
+        bool hasLink1 = HasCompanionApp(status.ProviderId);
+        bool hasLink2 = HasSecondCompanionApp(status.ProviderId);
+        if (!hasLink1 && !hasLink2) return;
+
+        using var linkFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
+        using var linkBrush = new SolidBrush(Theme.AccentCyan);
+        float footY = gaugeBottom + 3;
+
+        if (hasLink1 && hasLink2)
+        {
+            // Two distinct launch targets (e.g. a web config tool and a native app) — each gets its
+            // own small clickable label instead of the whole card triggering just one of them.
+            string text2 = Strings.PopupLaunchLink(2);
+            string text1 = Strings.PopupLaunchLink(1);
+            float width2 = g.MeasureString(text2, linkFont).Width;
+            float width1 = g.MeasureString(text1, linkFont).Width;
+            const float linkGap = 8f;
+
+            var rect2 = new RectangleF(rect.Right - 14 - width2, footY, width2, 14);
+            var rect1 = new RectangleF(rect2.X - linkGap - width1, footY, width1, 14);
+
+            g.DrawString(text1, linkFont, linkBrush, rect1.Location);
+            g.DrawString(text2, linkFont, linkBrush, rect2.Location);
+
+            _companionLinkRects.Add((rect1, status.ProviderId, 0));
+            _companionLinkRects.Add((rect2, status.ProviderId, 1));
+        }
+        else
+        {
+            using var sf = new StringFormat { Alignment = StringAlignment.Far };
+            g.DrawString(Strings.PopupClickToLaunch, linkFont, linkBrush, new RectangleF(rect.X, footY, rect.Width - 14, 14), sf);
         }
     }
 
@@ -457,6 +490,9 @@ internal sealed class BatteryPopupForm : Form
 
     private bool HasCompanionApp(string providerId) =>
         _settings.Devices.TryGetValue(providerId, out var s) && !string.IsNullOrWhiteSpace(s.CompanionPath);
+
+    private bool HasSecondCompanionApp(string providerId) =>
+        _settings.Devices.TryGetValue(providerId, out var s) && !string.IsNullOrWhiteSpace(s.CompanionPath2);
 
     private void DrawFooter(Graphics g, float y)
     {
@@ -492,11 +528,23 @@ internal sealed class BatteryPopupForm : Form
         if (_closeButtonRect.Contains(e.Location)) { Hide(); return; }
         if (_pinButtonRect.Contains(e.Location)) { TogglePinned(); return; }
 
+        foreach (var (linkRect, providerId, linkIndex) in _companionLinkRects)
+        {
+            if (linkRect.Contains(e.Location))
+            {
+                DeviceCardClicked?.Invoke(providerId, linkIndex);
+                return;
+            }
+        }
+
+        // Whole-card click only stands in for a launch when there's just one companion link —
+        // once a device has two, clicking has to pick one via its own small label above instead of
+        // guessing which of the two the user meant.
         foreach (var (rect, providerId) in _cardRects)
         {
-            if (rect.Contains(e.Location) && HasCompanionApp(providerId))
+            if (rect.Contains(e.Location) && HasCompanionApp(providerId) && !HasSecondCompanionApp(providerId))
             {
-                DeviceCardClicked?.Invoke(providerId);
+                DeviceCardClicked?.Invoke(providerId, 0);
                 return;
             }
         }
@@ -565,7 +613,8 @@ internal sealed class BatteryPopupForm : Form
             || _settingsButtonRect.Contains(e.Location)
             || _pinButtonRect.Contains(e.Location)
             || _closeButtonRect.Contains(e.Location)
-            || _cardRects.Any(c => c.Rect.Contains(e.Location) && HasCompanionApp(c.ProviderId));
+            || _companionLinkRects.Any(c => c.Rect.Contains(e.Location))
+            || _cardRects.Any(c => c.Rect.Contains(e.Location) && HasCompanionApp(c.ProviderId) && !HasSecondCompanionApp(c.ProviderId));
         Cursor = overClickable ? Cursors.Hand : Cursors.Default;
     }
 
