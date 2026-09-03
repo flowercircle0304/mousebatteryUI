@@ -75,6 +75,17 @@ static class Program
         using var bmp = new Bitmap(popup.Width, popup.Height);
         popup.DrawToBitmap(bmp, new Rectangle(0, 0, popup.Width, popup.Height));
         bmp.Save(outPath, System.Drawing.Imaging.ImageFormat.Png);
+
+        // Visual check for the "今すぐ更新" press feedback: force the private flag on via reflection
+        // and render a second frame, since there's no real async operation to click-and-wait for.
+        var feedbackField = typeof(BatteryPopupForm).GetField("_refreshFeedbackActive", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        feedbackField?.SetValue(popup, true);
+        using var pressedBmp = new Bitmap(popup.Width, popup.Height);
+        popup.Invalidate();
+        popup.DrawToBitmap(pressedBmp, new Rectangle(0, 0, popup.Width, popup.Height));
+        string pressedPath = Path.Combine(Path.GetDirectoryName(outPath)!, "popup_refresh_pressed.png");
+        pressedBmp.Save(pressedPath, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine($"Saved refresh-pressed snapshot to {pressedPath}");
         Console.WriteLine($"Saved snapshot to {outPath}");
 
         // Also render the tray icon itself at a few representative sizes, upscaled for inspection.

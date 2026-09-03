@@ -39,6 +39,13 @@ internal sealed class BatteryPopupForm : Form
     private readonly System.Windows.Forms.Timer _chargeAnimTimer;
     private float _chargePhase;
 
+    // "今すぐ更新" is a cache re-read, not a hardware re-poll, so it always completes instantly —
+    // without this, clicking it gives no sign anything happened. This holds a brief inverted/dimmed
+    // state after the click purely so the click feels acknowledged, for exactly as long as this
+    // timer runs, not tied to any real work finishing.
+    private readonly System.Windows.Forms.Timer _refreshFeedbackTimer;
+    private bool _refreshFeedbackActive;
+
     public event Action? RefreshRequested;
     public event Action? ExitRequested;
     public event Action? SettingsRequested;
@@ -69,6 +76,14 @@ internal sealed class BatteryPopupForm : Form
                 return;
             }
             _chargePhase += 0.16f;
+            Invalidate();
+        };
+
+        _refreshFeedbackTimer = new System.Windows.Forms.Timer { Interval = 350 };
+        _refreshFeedbackTimer.Tick += (_, _) =>
+        {
+            _refreshFeedbackTimer.Stop();
+            _refreshFeedbackActive = false;
             Invalidate();
         };
     }
@@ -166,6 +181,12 @@ internal sealed class BatteryPopupForm : Form
                 _cardRects.Add((cardRect, r.ProviderId));
                 y += CardHeight + CardGap;
             }
+        }
+
+        if (_refreshFeedbackActive)
+        {
+            using var dimBrush = new SolidBrush(Color.FromArgb(70, Color.Black));
+            g.FillRectangle(dimBrush, new RectangleF(0, 0, Width, y));
         }
 
         DrawFooter(g, y);
@@ -499,10 +520,23 @@ internal sealed class BatteryPopupForm : Form
         using var font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
 
         _refreshButtonRect = new RectangleF(Pad, y + 8, 110, 24);
-        Gfx.DrawRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan, 1f);
-        using (var b = new SolidBrush(Theme.AccentCyan))
         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-            g.DrawString(Strings.PopupRefresh, font, b, _refreshButtonRect, sf);
+        {
+            if (_refreshFeedbackActive)
+            {
+                // Pressed feedback: solid-fill and swap the text color instead of just outlining, so
+                // the button itself visibly reacts to the click for the brief life of the timer.
+                Gfx.FillRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan);
+                using var textBrush = new SolidBrush(Theme.Background);
+                g.DrawString(Strings.PopupRefresh, font, textBrush, _refreshButtonRect, sf);
+            }
+            else
+            {
+                Gfx.DrawRoundedRect(g, _refreshButtonRect, 12, Theme.AccentCyan, 1f);
+                using var textBrush = new SolidBrush(Theme.AccentCyan);
+                g.DrawString(Strings.PopupRefresh, font, textBrush, _refreshButtonRect, sf);
+            }
+        }
 
         // Same exit action as the header's ×, just also reachable down here.
         _footerExitButtonRect = new RectangleF(Width - Pad - 80, y + 8, 80, 24);
@@ -522,7 +556,15 @@ internal sealed class BatteryPopupForm : Form
     protected override void OnMouseClick(MouseEventArgs e)
     {
         base.OnMouseClick(e);
-        if (_refreshButtonRect.Contains(e.Location)) { RefreshRequested?.Invoke(); return; }
+        if (_refreshButtonRect.Contains(e.Location))
+        {
+            _refreshFeedbackActive = true;
+            _refreshFeedbackTimer.Stop();
+            _refreshFeedbackTimer.Start();
+            Invalidate();
+            RefreshRequested?.Invoke();
+            return;
+        }
         if (_exitButtonRect.Contains(e.Location) || _footerExitButtonRect.Contains(e.Location)) { RequestExit(); return; }
         if (_settingsButtonRect.Contains(e.Location)) { SettingsRequested?.Invoke(); return; }
         if (_closeButtonRect.Contains(e.Location)) { Hide(); return; }
