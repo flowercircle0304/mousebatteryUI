@@ -115,7 +115,11 @@ public sealed class WlMouseStriderProvider : IMouseBatteryProvider
             for (int attempt = 0; attempt < 10; attempt++)
             {
                 var response = new byte[FeatLen];
-                if (RawHidFeatureIo.GetFeature(handle, response) && response[1] == StatusReady)
+                // response[6] echoes the request's own command byte (0x83) — checking it rejects a
+                // stale/mismatched reply left over from a different command on the same collection
+                // (e.g. one issued by the vendor's own web hub concurrently), which would otherwise
+                // read as a spuriously low or garbage battery percentage despite status byte 0xA1.
+                if (RawHidFeatureIo.GetFeature(handle, response) && response[1] == StatusReady && response[6] == 0x83)
                 {
                     bool charging = response[7] == 1;
                     int percent = Math.Clamp((int)response[8], 0, 100);
