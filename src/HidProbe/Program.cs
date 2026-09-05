@@ -1,55 +1,61 @@
-using System.Runtime.InteropServices;
 using HidSharp;
-using Microsoft.Win32.SafeHandles;
 
-const int VendorId = 0x36A7;
-const int ProductId = 0xA872;
-const int FeatLen = 65;
+const int VendorId = 0x373B;
+const int ProductId = 0x1031;
+const int ReportLength = 17;
+const byte OutputReportId = 8;
 
-[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-static extern SafeFileHandle CreateFileW(string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
-[DllImport("hid.dll", SetLastError = true)]
-static extern bool HidD_SetFeature(SafeFileHandle h, byte[] buf, uint len);
-[DllImport("hid.dll", SetLastError = true)]
-static extern bool HidD_GetFeature(SafeFileHandle h, byte[] buf, uint len);
+var target = DeviceList.Local.GetHidDevices(vendorID: VendorId)
+    .FirstOrDefault(d => d.ProductID == ProductId
+        && d.GetMaxOutputReportLength() == ReportLength
+        && d.GetMaxInputReportLength() == ReportLength);
 
-SafeFileHandle? Open(string path)
+if (target is null) { Console.WriteLine("Target collection not found."); return; }
+
+Console.WriteLine($"Target: {target.DevicePath}");
+if (!target.TryOpen(out var stream)) { Console.WriteLine("TryOpen failed."); return; }
+
+using (stream)
 {
-    var h = CreateFileW(path, 0x80000000 | 0x40000000, 1 | 2, IntPtr.Zero, 3, 0x40000000, IntPtr.Zero);
-    if (h.IsInvalid) { h.Dispose(); h = CreateFileW(path, 0, 1 | 2, IntPtr.Zero, 3, 0x40000000, IntPtr.Zero); }
-    return h.IsInvalid ? null : h;
-}
+    stream.ReadTimeout = 700;
+    stream.WriteTimeout = 1000;
 
-var candidates = DeviceList.Local.GetHidDevices(vendorID: VendorId)
-    .Where(d => d.ProductID == ProductId && d.GetMaxFeatureReportLength() == FeatLen)
-    .ToList();
+    // Sweep several candidate commands: battery(4), read-eeprom(8) reading the
+    // "system" register (addr 0, len 6) per OpenMouse's ATK layout, get-connect(3),
+    // get-cur-profile(0x0e), get-version(0x12), plus a few neighbors.
+    byte[] commandsToTry = { 4, 8, 3, 0x0e, 0x12, 1, 2, 5, 6, 7 };
 
-Console.WriteLine($"Found {candidates.Count} collection(s) with Feat={FeatLen}.");
-foreach (var dev in candidates)
-{
-    Console.WriteLine($"Path: {dev.DevicePath}");
-    var handle = Open(dev.DevicePath);
-    if (handle is null) { Console.WriteLine("  open failed"); continue; }
-    using (handle)
+    foreach (var cmd in commandsToTry)
     {
-        var request = new byte[FeatLen];
-        request[0] = 0;   // report id
-        request[3] = 2;   // n[2]
-        request[4] = 2;   // n[3]
-        request[6] = 131; // n[5] = 0x83
-
-        bool setOk = HidD_SetFeature(handle, request, (uint)request.Length);
-        Console.WriteLine($"  SetFeature: {setOk} (err={Marshal.GetLastWin32Error()})");
-        Thread.Sleep(100);
-
-        for (int attempt = 0; attempt < 30; attempt++)
+        var outBuf = new byte[ReportLength];
+        outBuf[0] = OutputReportId;
+        outBuf[1] = cmd;
+        if (cmd == 8) // ReadEEPROM body: [0, hi, lo, len, ...] after the command byte
         {
-            var response = new byte[FeatLen];
-            bool getOk = HidD_GetFeature(handle, response, (uint)response.Length);
-            if (attempt < 5 || attempt % 5 == 0)
-                Console.WriteLine($"  [{attempt}] GetFeature: {getOk}  Response: {BitConverter.ToString(response, 0, 12)}");
-            if (response[1] == 0xA1) { Console.WriteLine("  ==> status byte 0xA1 at attempt " + attempt + ", battery bytes: " + response[7] + ", " + response[8]); break; }
-            Thread.Sleep(30);
+            outBuf[2] = 0; outBuf[3] = 0; outBuf[4] = 0; outBuf[5] = 6;
+        }
+        int sum = OutputReportId;
+        for (int i = 1; i < ReportLength - 1; i++) sum += outBuf[i];
+        outBuf[ReportLength - 1] = unchecked((byte)(0x55 - sum));
+
+        Console.WriteLine($"--- cmd=0x{cmd:X2} Write: " + BitConverter.ToString(outBuf));
+        try { stream.Write(outBuf); }
+        catch (Exception ex) { Console.WriteLine("  Write failed: " + ex.Message); continue; }
+
+        bool gotReply = false;
+        for (int attempt = 0; attempt < 3 && !gotReply; attempt++)
+        {
+            try
+            {
+                var inBuf = new byte[ReportLength];
+                int n = stream.Read(inBuf);
+                Console.WriteLine($"  [{attempt}] Read {n} bytes: " + BitConverter.ToString(inBuf, 0, n));
+                gotReply = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  [{attempt}] Read failed: {ex.Message}");
+            }
         }
     }
 }

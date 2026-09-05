@@ -13,6 +13,8 @@ internal sealed class TemplateLibraryForm : Form
     private readonly AppSettings _settings;
     private readonly Panel _listPanel;
     private readonly Label _statusLabel;
+    private readonly TextBox _searchBox;
+    private IReadOnlyList<DeviceTemplate> _allTemplates = Array.Empty<DeviceTemplate>();
 
     public TemplateLibraryForm(AppSettings settings)
     {
@@ -26,7 +28,7 @@ internal sealed class TemplateLibraryForm : Form
         BackColor = Theme.Background;
         ForeColor = Theme.TextPrimary;
         Font = new Font("Segoe UI", 9f);
-        ClientSize = new Size(520, 440);
+        ClientSize = new Size(520, 470);
         Padding = new Padding(16);
 
         var title = new Label
@@ -49,18 +51,30 @@ internal sealed class TemplateLibraryForm : Form
         };
         Controls.Add(hint);
 
+        _searchBox = new TextBox
+        {
+            Location = new Point(16, 78),
+            Width = 488,
+            BackColor = Theme.CardBackground,
+            ForeColor = Theme.TextPrimary,
+            BorderStyle = BorderStyle.FixedSingle,
+            PlaceholderText = Strings.TemplateSearchPlaceholder,
+        };
+        _searchBox.TextChanged += (_, _) => ApplyFilter();
+        Controls.Add(_searchBox);
+
         _statusLabel = new Label
         {
             Text = Strings.TemplateLoading,
             ForeColor = Theme.TextMuted,
             AutoSize = true,
-            Location = new Point(16, 84),
+            Location = new Point(16, 108),
         };
         Controls.Add(_statusLabel);
 
         _listPanel = new Panel
         {
-            Location = new Point(16, 106),
+            Location = new Point(16, 130),
             Size = new Size(488, 280),
             AutoScroll = true,
             BackColor = Theme.CardBackground,
@@ -72,7 +86,7 @@ internal sealed class TemplateLibraryForm : Form
         {
             Text = Strings.TemplateClose,
             DialogResult = DialogResult.Cancel,
-            Location = new Point(ClientSize.Width - 88, 396),
+            Location = new Point(ClientSize.Width - 88, 426),
             Width = 72,
             Height = 30,
             FlatStyle = FlatStyle.Flat,
@@ -91,14 +105,39 @@ internal sealed class TemplateLibraryForm : Form
         var templates = await DeviceTemplateLibrary.LoadAsync();
         if (IsDisposed) return;
 
+        _allTemplates = templates;
         _statusLabel.Text = "";
-        PopulateList(templates);
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        string query = _searchBox.Text.Trim();
+        var filtered = query.Length == 0
+            ? _allTemplates
+            : _allTemplates.Where(t =>
+                t.Manufacturer.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || t.Model.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        PopulateList(filtered);
     }
 
     private void PopulateList(IReadOnlyList<DeviceTemplate> templates)
     {
         _listPanel.SuspendLayout();
         _listPanel.Controls.Clear();
+
+        if (templates.Count == 0)
+        {
+            _listPanel.Controls.Add(new Label
+            {
+                Text = Strings.TemplateNoResults,
+                ForeColor = Theme.TextMuted,
+                AutoSize = true,
+                Location = new Point(8, 8),
+            });
+            _listPanel.ResumeLayout();
+            return;
+        }
 
         int y = 8;
         foreach (var group in templates.GroupBy(t => t.Manufacturer).OrderBy(g => g.Key, StringComparer.Ordinal))
@@ -188,7 +227,9 @@ internal sealed class TemplateLibraryForm : Form
             "logitech-hidpp" => "logitech-hidpp",
             "sony-inzone-buds" => "sony-inzone-buds",
             "sprime-pm1" => "sprime-pm1",
-            "wlmouse-strider" => "wlmouse-strider",
+            // wlmouse-strider deliberately NOT special-cased: the Kind now covers several distinct
+            // WLMouse models sharing the same protocol (Strider, Beast G, Huan, ...), each needing
+            // its own id — falls through to the generic per-product id below, same as "razer".
             _ => $"{template.Kind}-{template.ProductId:x4}",
         };
 

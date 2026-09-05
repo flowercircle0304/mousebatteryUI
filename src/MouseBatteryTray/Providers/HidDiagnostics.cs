@@ -79,7 +79,19 @@ public static class HidDiagnostics
                     sb.AppendLine($"    → VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4}: 一致するコレクションが見つからないか、オープンに失敗しました");
                     continue;
                 }
-                var reading = session.GetLatest();
+                // Give the session a moment before giving up: a passive-push provider's background
+                // listener thread hasn't necessarily received its first spontaneous report yet the
+                // instant TryOpen returns (its doc comment says "every few seconds" for FURYCUBE),
+                // and a request/response provider's own internal retries take real wall-clock time
+                // too (e.g. waiting out a sleeping wireless mouse) — checking GetLatest() exactly
+                // once, immediately, used to read as "broken" for a device that just hadn't answered
+                // yet.
+                BatteryReading? reading = session.GetLatest();
+                for (int attempt = 0; reading is null && attempt < 3; attempt++)
+                {
+                    Thread.Sleep(2000);
+                    reading = session.GetLatest();
+                }
                 sb.AppendLine(reading is null
                     ? $"    → VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4}: オープンには成功しましたが、バッテリー値を取得できませんでした"
                     : $"    → VID_{g.Key.VendorID:X4}&PID_{g.Key.ProductID:X4}: {reading.Percent}% (取得成功)");

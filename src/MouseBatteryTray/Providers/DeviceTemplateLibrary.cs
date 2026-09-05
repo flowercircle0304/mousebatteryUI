@@ -176,5 +176,119 @@ public static class DeviceTemplateLibrary
             Verified = true,
             Notes = "WLMouse公式のWebハブ（gm.wlmouse.gg、WebHID使用）のJSソースに書かれていたコマンドをそのまま移植。実機で動作確認済み。2.4GHzレシーバー経由（PID 0xA872）と有線/BT直結時（PID 0xA873）の両方を登録（このアプリでは有線/BT直結時のコレクションから取得できています）。",
         },
+        // 以下、Striderと同じプロトコル（WLMouseの共通ドングル方式）を使うと見られる兄弟機種。
+        // オープンソースのOpenMouseプロジェクト（github.com/OpenMouse-Project/mouse-protocol）が
+        // 公開しているVID/PID一覧を基に追加。プロトコル自体はStriderで実機確認済みのものと同一と
+        // 見られるが、各機種の実機ではまだ検証できていないため Verified=false。
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast G",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA860,
+            AdditionalProductIds = new List<int> { 0xA861 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Huan",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA863,
+            AdditionalProductIds = new List<int> { 0xA864 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast Miao",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA866,
+            AdditionalProductIds = new List<int> { 0xA867 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast Mini Pro",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA868,
+            AdditionalProductIds = new List<int> { 0xA869 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast X Pro",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA870,
+            AdditionalProductIds = new List<int> { 0xA871 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Ying",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA874,
+            AdditionalProductIds = new List<int> { 0xA875 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Sword X",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA878,
+            AdditionalProductIds = new List<int> { 0xA879 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast Max",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA880,
+            AdditionalProductIds = new List<int> { 0xA881 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast X",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA883,
+            AdditionalProductIds = new List<int> { 0xA884 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WLMouse",
+            Model = "Beast Mini",
+            Kind = "wlmouse-strider",
+            VendorId = 0x36A7,
+            ProductId = 0xA885,
+            AdditionalProductIds = new List<int> { 0xA886 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
     };
 }

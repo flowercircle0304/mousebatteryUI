@@ -101,7 +101,11 @@ public sealed class CompxDongleProvider : IMouseBatteryProvider
             _percentByteOffset = percentByteOffset;
             _chargingByteOffset = chargingByteOffset;
             _voltageByteOffset = voltageByteOffset;
-            _stream.ReadTimeout = 2000;
+            // Short per-attempt timeout since GetLatest() now retries several times itself — the old
+            // single 2000ms timeout with a retry loop that didn't actually retry (see GetLatest)
+            // meant one asleep-mouse poll could still only cost 2s, but stacking that timeout across
+            // several real retries would make an unresponsive device dominate the whole poll cycle.
+            _stream.ReadTimeout = 500;
             _stream.WriteTimeout = 1000;
         }
 
@@ -109,19 +113,27 @@ public sealed class CompxDongleProvider : IMouseBatteryProvider
         {
             lock (_lock)
             {
-                try
+                // A sleeping wireless mouse simply never answers — confirmed live: the exact same
+                // exchange that timed out repeatedly succeeded immediately once the mouse was moved.
+                // Read() throws on timeout rather than returning 0, so each attempt needs its own
+                // try/catch: wrapping the whole write+read loop in one try/catch (the old code) meant
+                // the very first timeout aborted every remaining attempt, silently defeating what
+                // looked like a 3-attempt retry. Each attempt resends the request too, since this is
+                // an output/input report pair (not a Feature-report poll), so a stale write can't just
+                // be re-read.
+                for (int attempt = 0; attempt < 5; attempt++)
                 {
-                    var outBuf = new byte[_reportLength];
-                    outBuf[0] = _outputReportId;
-                    outBuf[1] = _commandId;
-                    int sum = _outputReportId + outBuf[1];
-                    outBuf[_reportLength - 1] = unchecked((byte)(85 - sum));
-
-                    _stream.Write(outBuf);
-
-                    var inBuf = new byte[_reportLength];
-                    for (int attempt = 0; attempt < 3; attempt++)
+                    try
                     {
+                        var outBuf = new byte[_reportLength];
+                        outBuf[0] = _outputReportId;
+                        outBuf[1] = _commandId;
+                        int sum = _outputReportId + outBuf[1];
+                        outBuf[_reportLength - 1] = unchecked((byte)(85 - sum));
+
+                        _stream.Write(outBuf);
+
+                        var inBuf = new byte[_reportLength];
                         int n = _stream.Read(inBuf);
                         if (n > _percentByteOffset && inBuf[1] == _commandId)
                         {
@@ -133,12 +145,12 @@ public sealed class CompxDongleProvider : IMouseBatteryProvider
                             return new BatteryReading(percent, charging, voltageMv);
                         }
                     }
-                    return null;
+                    catch (Exception)
+                    {
+                        // Timed out or otherwise failed on this attempt — try again.
+                    }
                 }
-                catch (Exception)
-                {
-                    return null;
-                }
+                return null;
             }
         }
 

@@ -4,11 +4,19 @@ using Microsoft.Win32.SafeHandles;
 namespace MouseBatteryTray.Providers;
 
 /// <summary>
-/// WLMouse Strider wireless gaming mouse. Like SPRIME PM1, this wasn't reverse engineered from a
-/// packet capture — it's read straight from WLMouse's own official web hub
-/// (https://gm.wlmouse.gg/), whose JS bundle contains a `getBatPer()` function in cleartext, and its
-/// caller showing exactly how the two returned bytes are interpreted (charging flag, then percent).
-/// <b>Confirmed working against real hardware</b> connected to this machine during development.
+/// WLMouse's wireless gaming mice — named after the Strider, the model this was built and verified
+/// against, but the same wire protocol (and this same class, via <see cref="ProviderRegistry"/>'s
+/// "wlmouse-strider" Kind) is shared across WLMouse's other 2.4GHz-dongle models (Beast G, Huan,
+/// Beast Miao, Beast Mini/Pro, Beast X/Pro, Ying, Sword X, Beast Max — see the OpenMouse project's
+/// PID catalog at github.com/OpenMouse-Project/mouse-protocol), each registered as its own template
+/// entry with its own VendorId/ProductId pair but otherwise identical Kind/behavior. Only the
+/// Strider's PID pair has actually been confirmed on real hardware; the siblings are unverified.
+///
+/// Like SPRIME PM1, this wasn't reverse engineered from a packet capture — it's read straight from
+/// WLMouse's own official web hub (https://gm.wlmouse.gg/), whose JS bundle contains a `getBatPer()`
+/// function in cleartext, and its caller showing exactly how the two returned bytes are interpreted
+/// (charging flag, then percent). <b>Confirmed working against real hardware</b> (Strider) connected
+/// to this machine during development.
 ///
 /// Wire protocol: Feature report id 0, 65 bytes total (1 report-id byte + 64-byte payload, matching
 /// this collection's declared Feat length exactly — no multiplexed larger report the way PM1's

@@ -138,6 +138,8 @@ public static class Strings
     public static string TemplateHint => P(
         "Logitech・Razerなど、公開仕様を基に実装したテンプレートです。実機での検証はされていないものが含まれます（「未検証」表記）。",
         "Templates for Logitech, Razer, etc. implemented from public protocol documentation. Entries marked \"unverified\" haven't been confirmed on real hardware.");
+    public static string TemplateSearchPlaceholder => P("検索（メーカー名・機種名）", "Search (manufacturer, model)");
+    public static string TemplateNoResults => P("該当するテンプレートが見つかりません。", "No templates match your search.");
     public static string TemplateLoading => P("テンプレートを取得中...", "Fetching templates...");
     public static string TemplateLoadFailed => P("テンプレートを取得できませんでした（オフライン？）。同梱の一覧を表示します。", "Couldn't fetch templates (offline?). Showing the bundled list instead.");
     public static string TemplateVerified => P("検証済み", "Verified");
