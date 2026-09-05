@@ -1,5 +1,5 @@
 {
-  "_readme": "コミュニティ投入型のデバイス対応テンプレート集です（マウスに限らず、USB 2.4GHzドングル方式の周辺機器全般）。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp・razer・sony-inzone-buds・sprime-pm1・wlmouse-strider のいずれか、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理デバイスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
+  "_readme": "コミュニティ投入型のデバイス対応テンプレート集です（マウスに限らず、USB 2.4GHzドングル方式の周辺機器全般）。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp・razer・sony-inzone-buds・sprime-pm1・wlmouse-strider・endgame-gear-we・ninjutso・finalmouse-ulx・pulsar・moddo-mouse・vgn-f2・teevolution・keychron-nape のいずれか、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理デバイスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
   "devices": [
     {
       "Manufacturer": "Logitech",
@@ -192,6 +192,150 @@
       "AdditionalProductIds": [43142],
       "Verified": false,
       "Notes": "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクト（github.com/OpenMouse-Project/mouse-protocol）が公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Lamzu",
+      "Model": "Maya X",
+      "Kind": "wlmouse-strider",
+      "VendorId": 14142,
+      "ProductId": 28,
+      "AdditionalProductIds": [29, 30],
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu製マウス。実機未検証。"
+    },
+    {
+      "Manufacturer": "CRDRAKO",
+      "Model": "KO-ONE",
+      "Kind": "wlmouse-strider",
+      "VendorId": 14142,
+      "ProductId": 106,
+      "AdditionalProductIds": [107],
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。"
+    },
+    {
+      "Manufacturer": "Glorious",
+      "Model": "Model O Wireless",
+      "Kind": "wlmouse-strider",
+      "VendorId": 9610,
+      "ProductId": 8226,
+      "AdditionalProductIds": [8209],
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Glorious",
+      "Model": "Model D Wireless",
+      "Kind": "wlmouse-strider",
+      "VendorId": 9610,
+      "ProductId": 8227,
+      "AdditionalProductIds": [8210],
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Glorious",
+      "Model": "Model O Pro",
+      "Kind": "wlmouse-strider",
+      "VendorId": 9610,
+      "ProductId": 8231,
+      "AdditionalProductIds": [8213],
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Glorious",
+      "Model": "Model O 2 Wireless / O2 Pro Wireless",
+      "Kind": "wlmouse-strider",
+      "VendorId": 9610,
+      "ProductId": 8243,
+      "Verified": false,
+      "Notes": "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Endgame Gear",
+      "Model": "OP1we / XM2we シリーズ全般",
+      "Kind": "endgame-gear-we",
+      "VendorId": 13159,
+      "ProductId": 0,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に実装（同プロジェクトのWebHIDフィルタもPID非依存・usage page依存のため、型番を問わず対応を試みます）。ATKダングルと共通のコマンド体系（Endgame Gear WEシリーズのEEPROM読み出し方式）をFeatureレポート経由で使用。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Ninjutso",
+      "Model": "Sora V3",
+      "Kind": "ninjutso",
+      "VendorId": 2362,
+      "ProductId": 57360,
+      "AdditionalProductIds": [60162],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（NinjaForce公式Webパネルのプロトコル）を基に追加。OpenMouse側でも実機検証はまだ済んでいないとのことです。このアプリでも実機未検証。"
+    },
+    {
+      "Manufacturer": "Ninjutso",
+      "Model": "TEN / TEN AIR",
+      "Kind": "ninjutso",
+      "VendorId": 2362,
+      "ProductId": 57376,
+      "AdditionalProductIds": [59905, 60161],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（NinjaForce公式Webパネルのプロトコル）を基に追加。OpenMouse側でも実機検証はまだ済んでいないとのことです。このアプリでも実機未検証。"
+    },
+    {
+      "Manufacturer": "Finalmouse",
+      "Model": "UltralightX (Starlight-12 / ULX)",
+      "Kind": "finalmouse-ulx",
+      "VendorId": 13853,
+      "ProductId": 256,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（公式WebHIDツール\"xpanel\"由来）を基に追加。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Pulsar",
+      "Model": "Xlite / X2 シリーズ全般",
+      "Kind": "pulsar",
+      "VendorId": 14096,
+      "ProductId": 0,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に実装（型番非依存・コレクション形状で判定するため、型番を問わず対応を試みます）。X3（別プロトコル）とVGN型番を共有するPulsar 4Kレシーバーは対象外。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "moddoMOUSE",
+      "Model": "moddoMOUSE",
+      "Kind": "moddo-mouse",
+      "VendorId": 12259,
+      "ProductId": 0,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（公式Webツール\"moddoHUB-Web\"由来）を基に実装。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "VGN",
+      "Model": "Dragonfly F2 Master+",
+      "Kind": "vgn-f2",
+      "VendorId": 13652,
+      "ProductId": 64342,
+      "AdditionalProductIds": [64343],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に実装。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Teevolution",
+      "Model": "Terra Pro",
+      "Kind": "teevolution",
+      "VendorId": 13652,
+      "ProductId": 62752,
+      "AdditionalProductIds": [62755, 62907, 62754],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に実装（Pulsarとほぼ同一のコマンド体系）。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Keychron",
+      "Model": "Nape Pro",
+      "Kind": "keychron-nape",
+      "VendorId": 13364,
+      "ProductId": 1088,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（VIAベースのraw HIDプロトコル）を基に実装。共有レシーバー（Link-KM）経由での接続は対象外。このアプリでの実機検証はまだ済んでいません。"
     }
   ]
 }

@@ -10,7 +10,9 @@ public sealed class DeviceTemplate
     public string Manufacturer { get; set; } = "";
     public string Model { get; set; } = "";
 
-    /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", "sprime-pm1", or "wlmouse-strider" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", "sprime-pm1", "wlmouse-strider",
+    /// "endgame-gear-we", "ninjutso", "finalmouse-ulx", "pulsar", "moddo-mouse", "vgn-f2",
+    /// "teevolution", or "keychron-nape" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -289,6 +291,178 @@ public static class DeviceTemplateLibrary
             AdditionalProductIds = new List<int> { 0xA886 },
             Verified = false,
             Notes = "WLMouse Strider（実機検証済み）と同じプロトコルを使うと見られる兄弟機種。OpenMouseプロジェクトが公開しているPID一覧を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        // Lamzu / CRDRAKO: OpenMouse's own "compx" module doc explicitly says this exact page-command
+        // protocol is "Shared page-command framing used by WLMouse and Lamzu receivers" — same Kind,
+        // same provider class, different VendorId (0x373E instead of WLMouse's 0x36A7).
+        new()
+        {
+            Manufacturer = "Lamzu",
+            Model = "Maya X",
+            Kind = "wlmouse-strider",
+            VendorId = 0x373E,
+            ProductId = 0x001C,
+            AdditionalProductIds = new List<int> { 0x001D, 0x001E },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu製マウス。実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "CRDRAKO",
+            Model = "KO-ONE",
+            Kind = "wlmouse-strider",
+            VendorId = 0x373E,
+            ProductId = 0x006A,
+            AdditionalProductIds = new List<int> { 0x006B },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。",
+        },
+        // Glorious "classic" line (pre-Pixart Model O/D/I): OpenMouse's own reverse-engineering
+        // (ported from glorious-ctl's mouse.py, cross-confirmed by an unrelated C# implementation,
+        // AwesomeTy18/GloriousBatteryMonitor) shows its battery-read command is byte-for-byte
+        // IDENTICAL to WLMouse Strider's — same Feature report id 0, same 65-byte buffer, same
+        // request bytes (offset 3=0x02, 4=0x02, 6=0x83), same response layout (offset 1=status,
+        // 6=echo, 7=charging, 8=percent). Reuses this same provider class with no new code, only a
+        // different VendorId. PID pairs from OpenMouse's own vendors.ts GLORIOUS_CLASSIC_PRODUCTS map.
+        new()
+        {
+            Manufacturer = "Glorious",
+            Model = "Model O Wireless",
+            Kind = "wlmouse-strider",
+            VendorId = 0x258A,
+            ProductId = 0x2022,
+            AdditionalProductIds = new List<int> { 0x2011 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Glorious",
+            Model = "Model D Wireless",
+            Kind = "wlmouse-strider",
+            VendorId = 0x258A,
+            ProductId = 0x2023,
+            AdditionalProductIds = new List<int> { 0x2012 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Glorious",
+            Model = "Model O Pro",
+            Kind = "wlmouse-strider",
+            VendorId = 0x258A,
+            ProductId = 0x2027,
+            AdditionalProductIds = new List<int> { 0x2015 },
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Glorious",
+            Model = "Model O 2 Wireless / O2 Pro Wireless",
+            Kind = "wlmouse-strider",
+            VendorId = 0x258A,
+            ProductId = 0x2033,
+            Verified = false,
+            Notes = "WLMouse Strider（実機検証済み）と完全に同一のプロトコル（バイト単位で一致）を使用。OpenMouseプロジェクトの解析（glorious-ctl由来、別実装のGloriousBatteryMonitorでも裏付け済み）を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Endgame Gear",
+            Model = "OP1we / XM2we シリーズ全般",
+            Kind = "endgame-gear-we",
+            VendorId = 0x3367,
+            ProductId = 0,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装（同プロジェクトのWebHIDフィルタもPID非依存・usage page依存のため、型番を問わず対応を試みます）。ATKダングルと共通のコマンド体系（Endgame Gear WEシリーズのEEPROM読み出し方式）をFeatureレポート経由で使用。このアプリでの実機検証はまだ済んでいません。",
+        },
+        // Ninjutso "current"-generation protocol (NinjaForce's own WebHID panel), per OpenMouse's
+        // reverse engineering. OpenMouse's own comment notes hardware verification is still pending
+        // even in their implementation; same caveat applies here.
+        new()
+        {
+            Manufacturer = "Ninjutso",
+            Model = "Sora V3",
+            Kind = "ninjutso",
+            VendorId = 0x093A,
+            ProductId = 0xE010,
+            AdditionalProductIds = new List<int> { 0xEB02 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（NinjaForce公式Webパネルのプロトコル）を基に追加。OpenMouse側でも実機検証はまだ済んでいないとのことです。このアプリでも実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "Ninjutso",
+            Model = "TEN / TEN AIR",
+            Kind = "ninjutso",
+            VendorId = 0x093A,
+            ProductId = 0xE020,
+            AdditionalProductIds = new List<int> { 0xEA01, 0xEB01 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（NinjaForce公式Webパネルのプロトコル）を基に追加。OpenMouse側でも実機検証はまだ済んでいないとのことです。このアプリでも実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "Finalmouse",
+            Model = "UltralightX (Starlight-12 / ULX)",
+            Kind = "finalmouse-ulx",
+            VendorId = 0x361D,
+            ProductId = 0x0100,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（公式WebHIDツール\"xpanel\"由来）を基に追加。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Pulsar",
+            Model = "Xlite / X2 シリーズ全般",
+            Kind = "pulsar",
+            VendorId = 0x3710,
+            ProductId = 0,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装（型番非依存・コレクション形状で判定するため、型番を問わず対応を試みます）。X3（別プロトコル）とVGN型番を共有するPulsar 4Kレシーバーは対象外。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "moddoMOUSE",
+            Model = "moddoMOUSE",
+            Kind = "moddo-mouse",
+            VendorId = 0x2FE3,
+            ProductId = 0,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（公式Webツール\"moddoHUB-Web\"由来）を基に実装。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "VGN",
+            Model = "Dragonfly F2 Master+",
+            Kind = "vgn-f2",
+            VendorId = 0x3554,
+            ProductId = 0xFB56,
+            AdditionalProductIds = new List<int> { 0xFB57 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Teevolution",
+            Model = "Terra Pro",
+            Kind = "teevolution",
+            VendorId = 0x3554,
+            ProductId = 0xF520,
+            AdditionalProductIds = new List<int> { 0xF523, 0xF5BB, 0xF522 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装（Pulsarとほぼ同一のコマンド体系）。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Keychron",
+            Model = "Nape Pro",
+            Kind = "keychron-nape",
+            VendorId = 0x3434,
+            ProductId = 0x0440,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（VIAベースのraw HIDプロトコル）を基に実装。共有レシーバー（Link-KM）経由での接続は対象外。このアプリでの実機検証はまだ済んでいません。",
         },
     };
 }

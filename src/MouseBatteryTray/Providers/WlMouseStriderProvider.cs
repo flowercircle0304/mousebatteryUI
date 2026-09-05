@@ -4,13 +4,19 @@ using Microsoft.Win32.SafeHandles;
 namespace MouseBatteryTray.Providers;
 
 /// <summary>
-/// WLMouse's wireless gaming mice — named after the Strider, the model this was built and verified
-/// against, but the same wire protocol (and this same class, via <see cref="ProviderRegistry"/>'s
-/// "wlmouse-strider" Kind) is shared across WLMouse's other 2.4GHz-dongle models (Beast G, Huan,
-/// Beast Miao, Beast Mini/Pro, Beast X/Pro, Ying, Sword X, Beast Max — see the OpenMouse project's
-/// PID catalog at github.com/OpenMouse-Project/mouse-protocol), each registered as its own template
-/// entry with its own VendorId/ProductId pair but otherwise identical Kind/behavior. Only the
-/// Strider's PID pair has actually been confirmed on real hardware; the siblings are unverified.
+/// The "compx" page-command protocol — named after OpenMouse's own module for it
+/// (github.com/OpenMouse-Project/mouse-protocol, src/compx/codec.ts, documented there as "Shared
+/// page-command framing used by WLMouse and Lamzu receivers"). Despite the class name (kept for the
+/// model this was actually built and verified against — WLMouse's Strider), this same wire protocol
+/// and this same provider class, via <see cref="ProviderRegistry"/>'s "wlmouse-strider" Kind, covers:
+///  - WLMouse's other 2.4GHz-dongle models (Beast G, Huan, Beast Miao, Beast Mini/Pro, Beast X/Pro,
+///    Ying, Sword X, Beast Max — VID 0x36A7).
+///  - Lamzu's receivers, and rebadges of them sold under other names — e.g. CRDRAKO's KO-ONE (VID
+///    0x373E, per OpenMouse's own vendors.ts mapping both "lamzu" and "attackshark" to that VID, and
+///    openmouse.app/supported listing Maya X / KO-ONE as "Supported" via the "Lamzu/CompX driver").
+/// Each model is registered as its own template entry with its own VendorId/ProductId pair but
+/// otherwise identical Kind/behavior. Only the Strider's PID pair has actually been confirmed on real
+/// hardware; the rest are unverified (added from OpenMouse's own PID catalog, not tested here).
 ///
 /// Like SPRIME PM1, this wasn't reverse engineered from a packet capture — it's read straight from
 /// WLMouse's own official web hub (https://gm.wlmouse.gg/), whose JS bundle contains a `getBatPer()`
@@ -37,27 +43,31 @@ public sealed class WlMouseStriderProvider : IMouseBatteryProvider
     public string Id { get; }
     public string DisplayName { get; }
 
-    private const int VendorId = 0x36A7;
+    private const int DefaultVendorId = 0x36A7; // WLMouse
     private const int FeatLen = 65;
     private const byte StatusReady = 0xA1;
 
     // The mouse enumerates under PID 0xA872 via its 2.4GHz dongle receiver and under 0xA873 when
     // connected directly (cable/BT) — both were seen simultaneously on real hardware during
     // development, so both are matched by default (same pattern as RazerProvider's wired/wireless
-    // PID pairs).
+    // PID pairs). Only meaningful when no explicit productIds are passed (i.e. for the Strider
+    // itself); every other model/brand always passes its own list explicitly.
     private static readonly int[] DefaultProductIds = { 0xA872, 0xA873 };
 
+    private readonly int _vendorId;
     private readonly IReadOnlySet<int> _productIds;
 
-    public WlMouseStriderProvider(string id = "wlmouse-strider", string displayName = "WLMouse Strider", IEnumerable<int>? productIds = null)
+    public WlMouseStriderProvider(string id = "wlmouse-strider", string displayName = "WLMouse Strider",
+        IEnumerable<int>? productIds = null, int vendorId = DefaultVendorId)
     {
         Id = id;
         DisplayName = displayName;
+        _vendorId = vendorId;
         _productIds = (productIds ?? DefaultProductIds).ToHashSet();
     }
 
     public bool OwnsVendorProduct(int vendorId, int productId) =>
-        vendorId == VendorId && _productIds.Contains(productId);
+        vendorId == _vendorId && _productIds.Contains(productId);
 
     public IBatteryDeviceSession? TryOpen(IReadOnlyList<HidDevice> collections)
     {

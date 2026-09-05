@@ -227,6 +227,13 @@ internal sealed class TemplateLibraryForm : Form
             "logitech-hidpp" => "logitech-hidpp",
             "sony-inzone-buds" => "sony-inzone-buds",
             "sprime-pm1" => "sprime-pm1",
+            "endgame-gear-we" => "endgame-gear-we",
+            "finalmouse-ulx" => "finalmouse-ulx",
+            "pulsar" => "pulsar",
+            "moddo-mouse" => "moddo-mouse",
+            "vgn-f2" => "vgn-f2",
+            "teevolution" => "teevolution",
+            "keychron-nape" => "keychron-nape",
             // wlmouse-strider deliberately NOT special-cased: the Kind now covers several distinct
             // WLMouse models sharing the same protocol (Strider, Beast G, Huan, ...), each needing
             // its own id — falls through to the generic per-product id below, same as "razer".
