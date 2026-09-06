@@ -1,5 +1,5 @@
 {
-  "_readme": "コミュニティ投入型のデバイス対応テンプレート集です（マウスに限らず、USB 2.4GHzドングル方式の周辺機器全般）。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp・razer・sony-inzone-buds・sprime-pm1・wlmouse-strider・endgame-gear-we・ninjutso・finalmouse-ulx・pulsar・moddo-mouse・vgn-f2・teevolution・keychron-nape のいずれか、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理デバイスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
+  "_readme": "コミュニティ投入型のデバイス対応テンプレート集です（マウスに限らず、USB 2.4GHzドングル方式の周辺機器全般）。設定画面の「テンプレートから追加」から取得されます。追加はPR歓迎です — Kind は logitech-hidpp・razer・sony-inzone-buds・sprime-pm1・wlmouse-strider・endgame-gear-we・ninjutso・finalmouse-ulx・pulsar・moddo-mouse・vgn-f2・teevolution・keychron-nape・keychron-m6 のいずれか、フィールドの意味は src/MouseBatteryTray/Providers/DeviceTemplateLibrary.cs を参照してください。AdditionalProductIds には同じ物理デバイスの別モード（例: 充電ケーブル使用時の有線PID）を入れてください。実機で動作確認できたら Verified を true にしてPRしてください。",
   "devices": [
     {
       "Manufacturer": "Logitech",
@@ -50,9 +50,9 @@
       "VendorId": 5426,
       "ProductId": 123,
       "AdditionalProductIds": [122],
-      "RazerTransactionId": 255,
+      "RazerTransactionId": 63,
       "Verified": false,
-      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。OpenMouseプロジェクトの実機報告によれば、公式ドライバ記載の0xFFではなく0x3Fが正しいトランザクションIDとのことなので修正済み（0x1Fは無応答、0x3Fでファームウェア・DPI・ポーリング・バッテリーが読めたとのこと）。"
     },
     {
       "Manufacturer": "Razer",
@@ -64,6 +64,60 @@
       "RazerTransactionId": 63,
       "Verified": false,
       "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "DeathAdder Essential",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 110,
+      "AdditionalProductIds": [113, 152],
+      "RazerTransactionId": 63,
+      "Verified": false,
+      "Notes": "openrazerカーネルドライバの仕様を基に実装。実機未検証（3つのハードウェア版のPIDをすべて登録）。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "DeathAdder V4 Pro",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 190,
+      "AdditionalProductIds": [191],
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（OpenRazer PR #2508準拠）を基に追加。実機未検証（無線・有線どちらのPIDも登録済み）。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "DeathAdder V4 Pro Carbon Fiber Edition",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 239,
+      "AdditionalProductIds": [240],
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "DeathAdder V4 Proと同じ電子基板の別色SKU（OpenMouseプロジェクトの解析）。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Viper V3 HyperSpeed",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 184,
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に追加。実機未検証。"
+    },
+    {
+      "Manufacturer": "Razer",
+      "Model": "Viper V3 Pro SE",
+      "Kind": "razer",
+      "VendorId": 5426,
+      "ProductId": 222,
+      "AdditionalProductIds": [223],
+      "RazerTransactionId": 31,
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析（OpenRazer PR #2818準拠）を基に追加。実機未検証（無線・有線どちらのPIDも登録済み）。"
     },
     {
       "Manufacturer": "Sony",
@@ -214,6 +268,16 @@
       "Notes": "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。"
     },
     {
+      "Manufacturer": "Attack Shark",
+      "Model": "R5 Ultra",
+      "Kind": "wlmouse-strider",
+      "VendorId": 14142,
+      "ProductId": 71,
+      "AdditionalProductIds": [70],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトによれば、Lamzu/CRDRAKOと同じVendorId・同じ\"compx\"プロトコルのOEM機種（WLMouse Strider実機検証済みとバイト単位で同一）。実機未検証。"
+    },
+    {
       "Manufacturer": "Glorious",
       "Model": "Model O Wireless",
       "Kind": "wlmouse-strider",
@@ -336,6 +400,16 @@
       "ProductId": 1088,
       "Verified": false,
       "Notes": "OpenMouseプロジェクトの解析（VIAベースのraw HIDプロトコル）を基に実装。共有レシーバー（Link-KM）経由での接続は対象外。このアプリでの実機検証はまだ済んでいません。"
+    },
+    {
+      "Manufacturer": "Keychron",
+      "Model": "M6",
+      "Kind": "keychron-m6",
+      "VendorId": 13364,
+      "ProductId": 53344,
+      "AdditionalProductIds": [53289],
+      "Verified": false,
+      "Notes": "OpenMouseプロジェクトの解析を基に実装（Nape Proとは別のプロトコル）。有線PIDと、Link-KMレシーバー経由の無線PIDの両方を登録。このアプリでの実機検証はまだ済んでいません。"
     }
   ]
 }

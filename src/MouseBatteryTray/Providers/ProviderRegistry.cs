@@ -59,6 +59,7 @@ public static class ProviderRegistry
                 "vgn-f2" => new VgnProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds)),
                 "teevolution" => new TeevolutionProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds)),
                 "keychron-nape" => new KeychronNapeProvider(d.Id, d.DisplayName),
+                "keychron-m6" => new KeychronM6Provider(d.Id, d.DisplayName),
                 "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), (byte)d.RazerTransactionId),
                 _ => null,
             };

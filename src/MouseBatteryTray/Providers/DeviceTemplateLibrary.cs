@@ -12,7 +12,8 @@ public sealed class DeviceTemplate
 
     /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", "sprime-pm1", "wlmouse-strider",
     /// "endgame-gear-we", "ninjutso", "finalmouse-ulx", "pulsar", "moddo-mouse", "vgn-f2",
-    /// "teevolution", or "keychron-nape" today — matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// "teevolution", "keychron-nape", or "keychron-m6" today — matches
+    /// <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -131,9 +132,9 @@ public static class DeviceTemplateLibrary
             VendorId = 0x1532,
             ProductId = 0x007B,
             AdditionalProductIds = new List<int> { 0x007A },
-            RazerTransactionId = 0xFF,
+            RazerTransactionId = 0x3F,
             Verified = false,
-            Notes = "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。",
+            Notes = "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。OpenMouseプロジェクトの実機報告によれば、公式ドライバ記載の0xFFではなく0x3Fが正しいトランザクションIDとのことなので修正済み（0x1Fは無応答、0x3Fでファームウェア・DPI・ポーリング・バッテリーが読めたとのこと）。",
         },
         new()
         {
@@ -146,6 +147,67 @@ public static class DeviceTemplateLibrary
             RazerTransactionId = 0x3F,
             Verified = false,
             Notes = "openrazerカーネルドライバの仕様を基に実装。実機未検証（無線・有線どちらのPIDも登録済み）。",
+        },
+        // 以下、OpenMouseプロジェクト（github.com/OpenMouse-Project/mouse-protocol、src/razer/devices.ts）
+        // が公開しているトランザクションID一覧を基に追加。既存のRazerモデルと同じ標準90バイトプロトコル。
+        new()
+        {
+            Manufacturer = "Razer",
+            Model = "DeathAdder Essential",
+            Kind = "razer",
+            VendorId = 0x1532,
+            ProductId = 0x006E,
+            AdditionalProductIds = new List<int> { 0x0071, 0x0098 },
+            RazerTransactionId = 0x3F,
+            Verified = false,
+            Notes = "openrazerカーネルドライバの仕様を基に実装。実機未検証（3つのハードウェア版のPIDをすべて登録）。",
+        },
+        new()
+        {
+            Manufacturer = "Razer",
+            Model = "DeathAdder V4 Pro",
+            Kind = "razer",
+            VendorId = 0x1532,
+            ProductId = 0x00BE,
+            AdditionalProductIds = new List<int> { 0x00BF },
+            RazerTransactionId = 0x1F,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（OpenRazer PR #2508準拠）を基に追加。実機未検証（無線・有線どちらのPIDも登録済み）。",
+        },
+        new()
+        {
+            Manufacturer = "Razer",
+            Model = "DeathAdder V4 Pro Carbon Fiber Edition",
+            Kind = "razer",
+            VendorId = 0x1532,
+            ProductId = 0x00EF,
+            AdditionalProductIds = new List<int> { 0x00F0 },
+            RazerTransactionId = 0x1F,
+            Verified = false,
+            Notes = "DeathAdder V4 Proと同じ電子基板の別色SKU（OpenMouseプロジェクトの解析）。実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "Razer",
+            Model = "Viper V3 HyperSpeed",
+            Kind = "razer",
+            VendorId = 0x1532,
+            ProductId = 0x00B8,
+            RazerTransactionId = 0x1F,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に追加。実機未検証。",
+        },
+        new()
+        {
+            Manufacturer = "Razer",
+            Model = "Viper V3 Pro SE",
+            Kind = "razer",
+            VendorId = 0x1532,
+            ProductId = 0x00DE,
+            AdditionalProductIds = new List<int> { 0x00DF },
+            RazerTransactionId = 0x1F,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析（OpenRazer PR #2818準拠）を基に追加。実機未検証（無線・有線どちらのPIDも登録済み）。",
         },
         new()
         {
@@ -317,6 +379,17 @@ public static class DeviceTemplateLibrary
             Verified = false,
             Notes = "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。",
         },
+        new()
+        {
+            Manufacturer = "Attack Shark",
+            Model = "R5 Ultra",
+            Kind = "wlmouse-strider",
+            VendorId = 0x373E,
+            ProductId = 0x0047,
+            AdditionalProductIds = new List<int> { 0x0046 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトによれば、Lamzu/CRDRAKOと同じVendorId・同じ\"compx\"プロトコルのOEM機種（WLMouse Strider実機検証済みとバイト単位で同一）。実機未検証。",
+        },
         // Glorious "classic" line (pre-Pixart Model O/D/I): OpenMouse's own reverse-engineering
         // (ported from glorious-ctl's mouse.py, cross-confirmed by an unrelated C# implementation,
         // AwesomeTy18/GloriousBatteryMonitor) shows its battery-read command is byte-for-byte
@@ -463,6 +536,17 @@ public static class DeviceTemplateLibrary
             ProductId = 0x0440,
             Verified = false,
             Notes = "OpenMouseプロジェクトの解析（VIAベースのraw HIDプロトコル）を基に実装。共有レシーバー（Link-KM）経由での接続は対象外。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "Keychron",
+            Model = "M6",
+            Kind = "keychron-m6",
+            VendorId = 0x3434,
+            ProductId = 0xD060,
+            AdditionalProductIds = new List<int> { 0xD029 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装（Nape Proとは別のプロトコル）。有線PIDと、Link-KMレシーバー経由の無線PIDの両方を登録。このアプリでの実機検証はまだ済んでいません。",
         },
     };
 }
