@@ -60,6 +60,8 @@ public static class ProviderRegistry
                 "teevolution" => new TeevolutionProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds)),
                 "keychron-nape" => new KeychronNapeProvider(d.Id, d.DisplayName),
                 "keychron-m6" => new KeychronM6Provider(d.Id, d.DisplayName),
+                "mchose" => new MchoseProvider(d.Id, d.DisplayName),
+                "wallhack" => new WallhackProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds)),
                 "razer" => new RazerProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), (byte)d.RazerTransactionId),
                 _ => null,
             };

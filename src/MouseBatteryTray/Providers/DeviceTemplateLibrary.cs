@@ -12,8 +12,8 @@ public sealed class DeviceTemplate
 
     /// <summary>"logitech-hidpp", "razer", "sony-inzone-buds", "sprime-pm1", "wlmouse-strider",
     /// "endgame-gear-we", "ninjutso", "finalmouse-ulx", "pulsar", "moddo-mouse", "vgn-f2",
-    /// "teevolution", "keychron-nape", or "keychron-m6" today — matches
-    /// <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
+    /// "teevolution", "keychron-nape", "keychron-m6", "mchose", "wallhack", or "compx" today —
+    /// matches <see cref="DiscoveredDeviceSpec.Kind"/>.</summary>
     public string Kind { get; set; } = "";
     public int VendorId { get; set; }
     public int ProductId { get; set; }
@@ -547,6 +547,37 @@ public static class DeviceTemplateLibrary
             AdditionalProductIds = new List<int> { 0xD029 },
             Verified = false,
             Notes = "OpenMouseプロジェクトの解析を基に実装（Nape Proとは別のプロトコル）。有線PIDと、Link-KMレシーバー経由の無線PIDの両方を登録。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "MCHOSE",
+            Model = "A7 V2 シリーズ全般",
+            Kind = "mchose",
+            VendorId = 0x3837,
+            ProductId = 0,
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装（レシーバーのPIDはA7 V2ファミリー全体で共有されているとのことなので、型番を問わず対応を試みます）。ビット反転という特殊な通信方式を使用。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "WALLHACK",
+            Model = "M-001",
+            Kind = "wallhack",
+            VendorId = 0x3879,
+            ProductId = 0x1110,
+            AdditionalProductIds = new List<int> { 0x0807 },
+            Verified = false,
+            Notes = "OpenMouseプロジェクトの解析を基に実装。このアプリでの実機検証はまだ済んでいません。",
+        },
+        new()
+        {
+            Manufacturer = "VXE",
+            Model = "R1 SE+",
+            Kind = "compx",
+            VendorId = 0x373B,
+            ProductId = 0x1085,
+            Verified = false,
+            Notes = "ATKの8Kドングルと同じA9チップ・同じEEPROM構成を共有しているとのこと(OpenMouseプロジェクトの解析より)。実機検証済みのATK向け実装をそのまま流用。このアプリでの実機検証はまだ済んでいません。",
         },
     };
 }

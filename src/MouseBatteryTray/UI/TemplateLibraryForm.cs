@@ -235,6 +235,8 @@ internal sealed class TemplateLibraryForm : Form
             "teevolution" => "teevolution",
             "keychron-nape" => "keychron-nape",
             "keychron-m6" => "keychron-m6",
+            "mchose" => "mchose",
+            "wallhack" => "wallhack",
             // wlmouse-strider deliberately NOT special-cased: the Kind now covers several distinct
             // WLMouse models sharing the same protocol (Strider, Beast G, Huan, ...), each needing
             // its own id — falls through to the generic per-product id below, same as "razer".
