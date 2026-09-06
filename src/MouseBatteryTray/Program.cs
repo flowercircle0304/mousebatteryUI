@@ -64,7 +64,7 @@ static class Program
 
         var sample = new[]
         {
-            new DeviceManager.DeviceStatus("atk-compx", "Wireless Mouse A", new BatteryReading(12, true, 3550), null),
+            new DeviceManager.DeviceStatus("atk-compx", "Wireless Mouse A", new BatteryReading(12, true, 3550, Dpi: 26000, PollingRateHz: 1000), null),
             new DeviceManager.DeviceStatus("furycube-f1", "Wireless Mouse B", new BatteryReading(28, false, null), TimeSpan.FromHours(6.4)),
             new DeviceManager.DeviceStatus("sony-inzone-buds", "INZONE Buds", new BatteryReading(41, null, null, new[] { ("L", 41), ("R", 67) }), null),
             new DeviceManager.DeviceStatus("unknown", "Unknown Mouse", null, null),

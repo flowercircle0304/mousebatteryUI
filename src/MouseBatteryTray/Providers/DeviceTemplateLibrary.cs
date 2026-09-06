@@ -19,6 +19,9 @@ public sealed class DeviceTemplate
     public int ProductId { get; set; }
     public int RazerTransactionId { get; set; } = 0x1F;
 
+    /// <summary>wlmouse-strider only — see <see cref="DiscoveredDeviceSpec.MouseTarget"/>.</summary>
+    public int MouseTarget { get; set; } = 0x02;
+
     /// <summary>Other product ids that are the same physical mouse under a different USB identity —
     /// e.g. many Razer mice switch to a distinct wired-mode PID the moment the charging cable is
     /// plugged in, so without this here the device looks like it disappeared while charging.</summary>
@@ -376,6 +379,9 @@ public static class DeviceTemplateLibrary
             VendorId = 0x373E,
             ProductId = 0x006A,
             AdditionalProductIds = new List<int> { 0x006B },
+            // OpenMouseプロジェクトのvendors.tsによれば、CRDRAKO KO-ONEだけは他ブランドと違い
+            // ターゲットバイトが0x00（他は0x02既定）。実機未検証だがソース記載どおりに設定。
+            MouseTarget = 0x00,
             Verified = false,
             Notes = "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。",
         },

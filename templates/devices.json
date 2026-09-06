@@ -264,8 +264,9 @@
       "VendorId": 14142,
       "ProductId": 106,
       "AdditionalProductIds": [107],
+      "MouseTarget": 0,
       "Verified": false,
-      "Notes": "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。実機未検証。"
+      "Notes": "WLMouse Strider（実機検証済み）と共通の\"compx\"プロトコル（OpenMouseプロジェクトが文書化）を使うと見られるLamzu系OEMマウス。ただしOpenMouseのvendors.tsによればターゲットバイトが他ブランドと違い0x00。実機未検証。"
     },
     {
       "Manufacturer": "Attack Shark",

@@ -58,6 +58,11 @@ public sealed class DiscoveredDeviceSpec
     // layout's struct order: percent, then charging, then a 2-byte voltage)
     public int? ChargingByteOffset { get; set; }
     public int? VoltageByteOffset { get; set; }
+
+    /// <summary>wlmouse-strider only — the "compx" page/command target byte for the mouse itself.
+    /// 0x02 for almost every brand under this Kind, but CRDRAKO's KO-ONE is a documented exception
+    /// (OpenMouse's vendors.ts gives it 0x00 instead) — see <see cref="Providers.WlMouseStriderProvider"/>.</summary>
+    public int MouseTarget { get; set; } = 0x02;
 }
 
 public sealed class AppSettings

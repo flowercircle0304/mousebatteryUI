@@ -446,6 +446,19 @@ internal sealed class BatteryPopupForm : Form
                 g.DrawString("%", unitFont, unitBrush, textX + pctWidth + 2, rect.Y + 24);
             }
 
+            // DPI/polling rate — optional device-config info a few providers can read essentially
+            // for free alongside battery (see BatteryReading's doc comment). Null for every other
+            // provider, so nothing appears on their cards. Sits beside the percentage rather than
+            // down by the gauge/footer, low enough to clear the charging/ETA text above it.
+            string deviceInfo = status.Reading is null ? "" : Strings.PopupDeviceInfo(status.Reading.Dpi, status.Reading.PollingRateHz);
+            if (deviceInfo.Length > 0)
+            {
+                using var infoFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
+                using var infoBrush = new SolidBrush(Theme.TextMuted);
+                using var sf = new StringFormat { Alignment = StringAlignment.Far };
+                g.DrawString(deviceInfo, infoFont, infoBrush, new RectangleF(rect.X, rect.Y + 27, rect.Width - 14, 14), sf);
+            }
+
             float gaugeH = 9;
             var gaugeRect = new RectangleF(textX, rect.Y + 44, rect.Right - 14 - textX, gaugeH);
             Gfx.DrawRoundedRect(g, gaugeRect, gaugeH / 2f, Theme.Border, 1f);
@@ -472,13 +485,14 @@ internal sealed class BatteryPopupForm : Form
             return;
         }
 
+        float footY = gaugeBottom + 3;
+
         bool hasLink1 = HasCompanionApp(status.ProviderId);
         bool hasLink2 = HasSecondCompanionApp(status.ProviderId);
         if (!hasLink1 && !hasLink2) return;
 
         using var linkFont = new Font("Segoe UI", 7.5f, FontStyle.Regular);
         using var linkBrush = new SolidBrush(Theme.AccentCyan);
-        float footY = gaugeBottom + 3;
 
         if (hasLink1 && hasLink2)
         {

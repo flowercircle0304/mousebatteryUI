@@ -58,6 +58,13 @@ public static class Strings
     public static string PopupEtaPrefix => P("残り約", "~");
     public static string PopupEtaHours(int hours) => P($"{hours}時間", $"{hours}h");
     public static string PopupEtaMinutes(int minutes) => P($"{minutes}分", $"{minutes}m");
+    public static string PopupDeviceInfo(int? dpi, int? pollingRateHz)
+    {
+        var parts = new List<string>();
+        if (dpi is { } d) parts.Add($"DPI {d:N0}");
+        if (pollingRateHz is { } hz) parts.Add($"{hz:N0}Hz");
+        return string.Join("  ・  ", parts);
+    }
 
     // ===== Settings window =====
     public static string SettingsTitle => P("マウスバッテリー設定", "Mouse Battery Settings");

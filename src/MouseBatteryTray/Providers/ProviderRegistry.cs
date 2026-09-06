@@ -50,7 +50,7 @@ public static class ProviderRegistry
                 "logitech-hidpp" => new LogitechHidPpProvider(d.Id, d.DisplayName),
                 "sony-inzone-buds" => new SonyInzoneBudsProvider(d.Id, d.DisplayName),
                 "sprime-pm1" => new SprimePM1Provider(d.Id, d.DisplayName),
-                "wlmouse-strider" => new WlMouseStriderProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), d.VendorId),
+                "wlmouse-strider" => new WlMouseStriderProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds), d.VendorId, (byte)d.MouseTarget),
                 "endgame-gear-we" => new EndgameGearWeProvider(d.Id, d.DisplayName),
                 "ninjutso" => new NinjutsoProvider(d.Id, d.DisplayName, new[] { d.ProductId }.Concat(d.AdditionalProductIds)),
                 "finalmouse-ulx" => new FinalmouseProvider(d.Id, d.DisplayName),

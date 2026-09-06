@@ -252,6 +252,7 @@ internal sealed class TemplateLibraryForm : Form
             ProductId = template.ProductId,
             AdditionalProductIds = new List<int>(template.AdditionalProductIds),
             RazerTransactionId = template.RazerTransactionId,
+            MouseTarget = template.MouseTarget,
         };
 
         _settings.DiscoveredDevices.RemoveAll(d => d.Id == id);

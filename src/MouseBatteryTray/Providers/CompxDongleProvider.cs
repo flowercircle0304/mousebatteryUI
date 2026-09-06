@@ -142,7 +142,8 @@ public sealed class CompxDongleProvider : IMouseBatteryProvider
                             int? voltageMv = _voltageByteOffset + 1 < n
                                 ? (inBuf[_voltageByteOffset] << 8) | inBuf[_voltageByteOffset + 1]
                                 : null;
-                            return new BatteryReading(percent, charging, voltageMv);
+                            var (dpi, pollingRateHz) = TryReadAtkDeviceInfo();
+                            return new BatteryReading(percent, charging, voltageMv, Dpi: dpi, PollingRateHz: pollingRateHz);
                         }
                     }
                     catch (Exception)
@@ -152,6 +153,119 @@ public sealed class CompxDongleProvider : IMouseBatteryProvider
                 }
                 return null;
             }
+        }
+
+        // ATK's own EEPROM register map (A9 family) — shares the Endgame Gear WE-series 16-byte
+        // command framing (report 0x08, ReadEEPROM cmd 0x08, every value/checksum pair and every
+        // whole frame summing to 0x55), per OpenMouse's from-source atk/hid.ts and atk/index.ts.
+        // Only meaningful for ATK's own device (reportLength 17 / outputReportId 8, this class's own
+        // defaults) — a different "compx" dongle added through the wizard just won't answer these
+        // extra reads, which is caught and swallowed exactly like the battery read's own retries.
+        private const byte EepromReadCommand = 0x08;
+        private const ushort RegisterSystem = 0x0000;
+        private const ushort RegisterDpiBase = 0x000C;
+        private const byte ChecksumTarget = 0x55;
+
+        // Divider byte -> Hz, from ATK's own POLLING_RATES table (atk/hid.ts) — a superset of the
+        // Endgame Gear WE table, since ATK's higher-end dongles also offer 2K/4K/8K.
+        private static readonly Dictionary<byte, int> AtkPollingRates = new()
+        {
+            [0x08] = 125, [0x04] = 250, [0x02] = 500, [0x01] = 1000,
+            [0x10] = 2000, [0x20] = 4000, [0x40] = 8000,
+        };
+
+        /// <summary>Reads the mouse's current DPI and polling rate from its EEPROM, after the battery
+        /// read above already confirmed it's awake. DPI is decoded assuming the "ultra"-family sensor
+        /// encoding (atk/index.ts's <c>atkDecodeDpiAxis</c>) — the encoding actually used depends on
+        /// which sensor variant is installed, which would need a separate chip-id read to identify
+        /// properly; "ultra" covers the highest-end (8K-class) sensors this dongle model targets, so
+        /// it's the reasonable default rather than a full per-sensor implementation. Any failure
+        /// (wrong sensor family, unsupported firmware, a dropped reply) is swallowed — it only ever
+        /// adds information, never breaks the battery reading.</summary>
+        private (int? Dpi, int? PollingRateHz) TryReadAtkDeviceInfo()
+        {
+            try
+            {
+                var system = TryReadEeprom(RegisterSystem, 6);
+                if (system is not { Length: 6 }) return (null, null);
+
+                int? pollingRateHz = ValidPair(system[0], system[1])
+                    ? (AtkPollingRates.TryGetValue(system[0], out int hz) ? hz : null)
+                    : null;
+
+                int activeLevel = ValidPair(system[4], system[5]) ? system[4] : 0;
+
+                int? dpi = null;
+                var stage = TryReadEeprom((ushort)(RegisterDpiBase + activeLevel * 4), 4);
+                if (stage is { Length: 4 })
+                {
+                    int sum = (stage[0] + stage[1] + stage[2] + stage[3]) & 0xFF;
+                    if (sum == ChecksumTarget)
+                    {
+                        int x = AtkDecodeDpiAxis(stage[0], (byte)(stage[2] & 0x0F));
+                        if (x > 0) dpi = x;
+                    }
+                }
+
+                return (dpi, pollingRateHz);
+            }
+            catch (Exception)
+            {
+                return (null, null);
+            }
+        }
+
+        private static bool ValidPair(byte value, byte crc) => unchecked((byte)(ChecksumTarget - value)) == crc;
+
+        /// <summary>"Ultra"-family per-axis decode (atk/index.ts's <c>atkDecodeDpiAxis</c>): bits 2-3
+        /// of the mode nibble extend the value byte, bit 1 selects the 50-DPI step range above
+        /// 10,000, bit 0 doubles the result above 30,000.</summary>
+        private static int AtkDecodeDpiAxis(byte value, byte nibble)
+        {
+            int code = ((nibble >> 2) & 0x03) << 8 | value;
+            int baseDpi = (nibble & 2) != 0 ? 10050 + code * 50 : (code + 1) * 10;
+            return (nibble & 1) != 0 ? baseDpi * 2 : baseDpi;
+        }
+
+        /// <summary>One EEPROM read round trip: same output/input report pair and checksum scheme as
+        /// the battery query, just with the ReadEEPROM command and an address/length instead of the
+        /// fixed GetBatteryLevel command. Returns the data bytes (without cmd/status/address/length
+        /// header) on success, or null on any mismatch/timeout.</summary>
+        private byte[]? TryReadEeprom(ushort address, byte length)
+        {
+            var outBuf = new byte[_reportLength];
+            outBuf[0] = _outputReportId;
+            outBuf[1] = EepromReadCommand;
+            outBuf[2] = 0;
+            outBuf[3] = (byte)(address >> 8);
+            outBuf[4] = (byte)address;
+            outBuf[5] = length;
+
+            int sum = _outputReportId;
+            for (int i = 1; i < _reportLength - 1; i++) sum += outBuf[i];
+            outBuf[_reportLength - 1] = unchecked((byte)(ChecksumTarget - sum));
+
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    _stream.Write(outBuf);
+                    var inBuf = new byte[_reportLength];
+                    int n = _stream.Read(inBuf);
+                    if (n >= 6 + length && inBuf[1] == EepromReadCommand && inBuf[2] == 0
+                        && inBuf[4] == (byte)address && inBuf[5] == length)
+                    {
+                        var data = new byte[length];
+                        Array.Copy(inBuf, 6, data, 0, length);
+                        return data;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Timed out or otherwise failed on this attempt — try again.
+                }
+            }
+            return null;
         }
 
         public void Dispose() => _stream.Dispose();
